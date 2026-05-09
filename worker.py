@@ -16,11 +16,13 @@ import importlib.util
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
 from temporalio.client import Client
 from temporalio.worker import Worker
+from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner, SandboxRestrictions
 
 from activities import ALL_ACTIVITIES
 
@@ -59,13 +61,14 @@ def _load_active_workflow_classes() -> list[type]:
             logger.error("Brak pliku %s referowanego przez manifest.", file_path)
             continue
 
-        spec = importlib.util.spec_from_file_location(
-            f"generated_workflow_{blueprint_id}_v{active}", file_path
-        )
+        # Pełen dotted name żeby Workflow Sandbox umiał re-importować moduł.
+        module_name = f"generated.workflows.{file_path.stem}"
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
         if spec is None or spec.loader is None:
             logger.error("Nie udało się załadować spec dla %s.", file_path)
             continue
         module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module  # CRITICAL — sandbox re-import po name
         spec.loader.exec_module(module)
         cls = getattr(module, class_name, None)
         if cls is None:
@@ -86,10 +89,18 @@ async def run_worker(
     client = await Client.connect(target_url, namespace=namespace)
     workflow_classes = _load_active_workflow_classes()
 
+    # Workflow Sandbox passthrough dla `activities.*` (workflow importuje fully-qualified function
+    # references) i `jq` (compiled JQ programs używane w `_eval()`; verifikacja decyzji #15 — libjq
+    # przechodzi przez sandbox jako passthrough module).
+    sandbox_restrictions = SandboxRestrictions.default.with_passthrough_modules(
+        "activities", "jq",
+    )
+
     worker_kwargs: dict[str, Any] = {
         "task_queue": task_queue,
         "workflows": workflow_classes,
         "activities": ALL_ACTIVITIES,
+        "workflow_runner": SandboxedWorkflowRunner(restrictions=sandbox_restrictions),
     }
     if build_id:
         worker_kwargs["build_id"] = build_id

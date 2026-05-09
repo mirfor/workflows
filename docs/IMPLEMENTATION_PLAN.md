@@ -131,7 +131,7 @@ Cztery strumienie równolegle po F2.1. Każdy strumień: impl (M) + dokument (S,
 | F3.C.4 | Source hash check + idempotency | M | F3.C.1 | #17 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
 | F3.C.5 | Header emission (Generated from Blueprint, source hash, DO NOT EDIT) + `black` formatter | M | F3.C.1 | #14 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
 | F3.C.6 | Worker Versioning Build ID assignment (`<PascalCaseId>_v<n>`, manifest update) | M | F3.C.1 | #14, #17 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
-| F3.C.7 | Action item: weryfikacja libjq w Workflow Sandbox; fallback expression eval w activity | M | F3.C.3 | #15 | `[?]` (TODO w F5 E2E z lokalnym Temporal Workerem) | — | — |
+| F3.C.7 | Action item: weryfikacja libjq w Workflow Sandbox; fallback expression eval w activity | M | F3.C.3 | #15 | `[x]` zweryfikowane: `SandboxRestrictions.with_passthrough_modules("jq", "activities")` w `worker.py`; full E2E z `temporal server start-dev` przeszedł, JQ eval działa w workflow runtime | 2026-05-09 17:10 | 2026-05-09 17:14 |
 | F3.C.8 | `codegen/IR_TO_PYTHON.md` | S | F3.C.1 | #14, #15 | `[x]` | 2026-05-09 15:42 | 2026-05-09 15:44 |
 | F3.C.9 | Tests (golden files CNCF SW JSON → `.py` + replay test) | M | F3.C.1–F3.C.6 | — | `[x]` (MVP: 11 unit testów; replay test w F5) | 2026-05-09 16:18 | 2026-05-09 16:20 |
 
@@ -165,7 +165,7 @@ Cztery strumienie równolegle po F2.1. Każdy strumień: impl (M) + dokument (S,
 |----|------|----------|------|--------|---------|-----------|
 | F5.1 | Sample Blueprint: prosty workflow `manual_trigger → call (Tool) → switch → emit/raise` (RF JSON + CNCF SW JSON + generated `.py`) | M | F3.A.4, F3.B.5, F3.C.9, F4.4 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:50 |
 | F5.2 | `DEV_SETUP.md` — lokalny Temporal (Docker), worker run, sample Blueprint deploy | S | F4.4 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:39 |
-| F5.3 | E2E test: start workflow → execution → expected result; replay test | M | F5.1, F5.2 | `[x]` (offline pipeline E2E; replay z Temporal Server odłożone — wymaga Docker) | 2026-05-09 16:50 | 2026-05-09 16:55 |
+| F5.3 | E2E test: start workflow → execution → expected result; replay test | M | F5.1, F5.2 | `[x]` (offline pipeline E2E + **runtime E2E z `temporal server start-dev`** — `sample` workflow wykonany z `tier=vip`, `log_message` activity OK, switch JQ eval OK, wszystkie taski w `steps_output`) | 2026-05-09 16:50 | 2026-05-09 17:14 |
 | F5.4 | `CONTRIBUTING.md` | S | F4.4 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:39 |
 | F5.5 | `README.md` (entry point) | S | F4.4 | `[x]` (stub z F0 wystarczający dla MVP) | — | — |
 

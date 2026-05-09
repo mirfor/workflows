@@ -62,8 +62,8 @@ Sekwencyjnie. Setup repo + dependency lock + CI stub.
 | F0.1 | Struktura katalogów (`blueprints/`, `generated/workflows/`, `activities/{tools,}`, `scripts/`, `mapper/`, `validator/`, `generator/`, `tests/`) | M | — | `[x]` | 2026-05-09 15:13 | 2026-05-09 15:14 |
 | F0.2 | `pyproject.toml` + `uv.lock` (`temporalio`, `pydantic>=2`, `jq` (libjq), `black`, `fastapi`, `pytest`, `ruff`, `mypy`); package manager: `uv` | M | F0.1 | `[x]` | 2026-05-09 15:14 | 2026-05-09 15:18 |
 | F0.3 | `.gitignore`, `.editorconfig`, `README.md` stub | M | F0.1 | `[x]` | 2026-05-09 15:18 | 2026-05-09 15:20 |
-| F0.4 | `git init` + first commit | M | F0.1, F0.2, F0.3 | `[~]` | 2026-05-09 15:20 | — |
-| F0.5 | CI skeleton (`.github/workflows/ci.yml`) — lint, type, test, codegen idempotency check | M | F0.4 | `[ ]` | — | — |
+| F0.4 | `git init` + first commit | M | F0.1, F0.2, F0.3 | `[x]` | 2026-05-09 15:20 | 2026-05-09 15:22 |
+| F0.5 | CI skeleton (`.github/workflows/ci.yml`) — lint, type, test, codegen idempotency check | M | F0.4 | `[x]` | 2026-05-09 15:22 | 2026-05-09 15:24 |
 
 ---
 
@@ -73,14 +73,14 @@ ADR-y równolegle (subagenci). ARCHITECTURE.md i PIPELINE.md po ADR-ach (M).
 
 | ID | Task | Delegate | Deps | Decyzja | Status | Started | Completed |
 |----|------|----------|------|---------|--------|---------|-----------|
-| F1.1 | `adr/ADR-001-python-codegen-over-dsl.md` | S | F0.4 | #30 | `[ ]` | — | — |
-| F1.2 | `adr/ADR-002-reactflow-source-of-truth.md` | S | F0.4 | #1, #2, #19 | `[ ]` | — | — |
-| F1.3 | `adr/ADR-003-compiled-py-per-blueprint.md` | S | F0.4 | #14, #17, #30 | `[ ]` | — | — |
-| F1.4 | `adr/ADR-004-cncf-sw-ir-as-contract.md` | S | F0.4 | #5, #6, #19 | `[ ]` | — | — |
-| F1.5 | `adr/ADR-005-worker-versioning-build-id.md` | S | F0.4 | #17 | `[ ]` | — | — |
-| F1.6 | `adr/ADR-006-tenancy-isolation.md` | S | F0.4 | #4 | `[ ]` | — | — |
-| F1.7 | `ARCHITECTURE.md` (overview, diagram, granica platforma vs definicje, preview vs prod, wersjonowanie) | M | F1.1–F1.6 | wszystkie | `[ ]` | — | — |
-| F1.8 | `PIPELINE.md` (drzewo zdarzeń edycja → produkcja, gates, SLO) | M | F1.7 | #14, #17 | `[ ]` | — | — |
+| F1.1 | `adr/ADR-001-python-codegen-over-dsl.md` | S | F0.4 | #30 | `[x]` | 2026-05-09 15:24 | 2026-05-09 15:25 |
+| F1.2 | `adr/ADR-002-reactflow-source-of-truth.md` | S | F0.4 | #1, #2, #19 | `[x]` | 2026-05-09 15:24 | 2026-05-09 15:26 |
+| F1.3 | `adr/ADR-003-compiled-py-per-blueprint.md` | S | F0.4 | #14, #17, #30 | `[x]` | 2026-05-09 15:24 | 2026-05-09 15:26 |
+| F1.4 | `adr/ADR-004-cncf-sw-ir-as-contract.md` | S | F0.4 | #5, #6, #19 | `[x]` | 2026-05-09 15:24 | 2026-05-09 15:26 |
+| F1.5 | `adr/ADR-005-worker-versioning-build-id.md` | S | F0.4 | #17 | `[x]` | 2026-05-09 15:24 | 2026-05-09 15:26 |
+| F1.6 | `adr/ADR-006-tenancy-isolation.md` | S | F0.4 | #4 | `[x]` | 2026-05-09 15:24 | 2026-05-09 15:26 |
+| F1.7 | `ARCHITECTURE.md` (overview, diagram, granica platforma vs definicje, preview vs prod, wersjonowanie) | M | F1.1–F1.6 | wszystkie | `[x]` | 2026-05-09 15:26 | 2026-05-09 15:30 |
+| F1.8 | `PIPELINE.md` (drzewo zdarzeń edycja → produkcja, gates, SLO) | M | F1.7 | #14, #17 | `[x]` | 2026-05-09 15:30 | 2026-05-09 15:33 |
 
 ---
 

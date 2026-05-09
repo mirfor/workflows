@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "tenant_id": "acme",
+  "blueprints": {
+    "hello": {
+      "active_version": "1",
+      "deprecated_versions": [],
+      "versions": {
+        "1": {
+          "file_path": "generated/acme/workflows/hello__v1.py",
+          "class_name": "Hello_v1",
+          "source_hash": "64b656cab6a123340974674ec36744ef44b796ae15389767e9b32fa68b4c0196",
+          "build_id": null,
+          "generated_at": "2026-05-09T15:09:53+00:00"
+        }
+      }
+    }
+  }
+}

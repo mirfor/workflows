@@ -295,9 +295,9 @@ def test_decision_16_validator_six_categories() -> None:
     from validator import Severity, validate  # noqa: F401
     from validator import validator as v
     src = inspect.getsource(v)
-    for prefix in ("A0", "B0", "C0", "D0", "E0", "F0"):
-        # Co najmniej jedna reguła per kategoria w MVP — placeholder check
-        assert prefix in src or True  # `True` dopóki implementator zaimplementuje wszystkie
+    # Co najmniej jedna reguła per kategoria — placeholder smoke; pełna asercja
+    # po dodaniu wszystkich kategorii reguł D/F do walidatora (post-MVP).
+    assert any(prefix in src for prefix in ("A0", "B0", "C0", "E1"))
 
 
 def test_decision_17_versioning_lifecycle_manifest() -> None:
@@ -477,3 +477,67 @@ def test_switch_case_supports_inline_do_body_in_pydantic() -> None:
     case = sw.switch[0]["vip"]
     assert case.do is not None
     assert len(case.do) == 1
+
+
+# ============== F5: multi-blueprint coverage =====================================
+
+
+def test_f5_multi_blueprint_coverage_per_task_type() -> None:
+    """F5: każdy z task types pokryty co najmniej 1 Blueprintem w `blueprints/`."""
+    bp_dir = REPO_ROOT / "blueprints"
+    if not bp_dir.exists():
+        pytest.skip("blueprints/ pusty — pomiń")
+
+    found_types: set[str] = set()
+    for tenant in bp_dir.iterdir():
+        if not tenant.is_dir():
+            continue
+        for bp in tenant.iterdir():
+            if not bp.is_dir():
+                continue
+            for v in bp.iterdir():
+                rf = v / "reactflow.json"
+                if not rf.exists():
+                    continue
+                import json as _j
+                data = _j.loads(rf.read_text("utf-8"))
+                for n in data.get("nodes", []):
+                    found_types.add(n.get("type", ""))
+
+    expected_core = {"manual_trigger", "set", "call", "switch", "for", "fork", "try", "raise"}
+    missing = expected_core - found_types
+    assert not missing, f"Multi-blueprint suite nie pokrywa: {missing}"
+
+
+def test_f5_cross_tenant_isolation_via_separate_manifests() -> None:
+    """F5: każdy Tenant ma osobny manifest w `generated/<tenant>/manifest.json`,
+    workflows wymienione w nim są dostępne TYLKO temu Tenantowi.
+    """
+    gen_dir = REPO_ROOT / "generated"
+    if not gen_dir.exists():
+        pytest.skip("generated/ pusty")
+    tenant_manifests = {}
+    for tenant in gen_dir.iterdir():
+        if not tenant.is_dir() or tenant.name == "__pycache__":
+            continue
+        mf = tenant / "manifest.json"
+        if mf.exists():
+            import json as _j
+            tenant_manifests[tenant.name] = _j.loads(mf.read_text("utf-8"))
+
+    if len(tenant_manifests) < 2:
+        pytest.skip("Mniej niż 2 Tenantów — brak materialu do isolation testu")
+
+    # Wszystkie Tenant manifesty są disjoint w blueprint_ids
+    seen_in_tenants: dict[str, str] = {}
+    for tenant, mf in tenant_manifests.items():
+        for bp_id in mf.get("blueprints", {}):
+            assert bp_id not in seen_in_tenants or seen_in_tenants[bp_id] == tenant, \
+                f"Blueprint {bp_id!r} występuje w wielu Tenantach " \
+                f"({seen_in_tenants[bp_id]} + {tenant}) — naruszenie izolacji #4"
+            seen_in_tenants[bp_id] = tenant
+
+    # Każdy Tenant manifest ma poprawne tenant_id w polu
+    for tenant, mf in tenant_manifests.items():
+        assert mf.get("tenant_id") == tenant, \
+            f"Manifest w {tenant}/manifest.json ma tenant_id={mf.get('tenant_id')!r}"

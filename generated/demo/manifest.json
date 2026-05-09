@@ -11,7 +11,46 @@
           "class_name": "Sample_v1",
           "source_hash": "b748ac96fca8765bd9825224aecdaeb9f245947c1888848c19f9617af041f469",
           "build_id": null,
-          "generated_at": "2026-05-09T15:05:32+00:00"
+          "generated_at": "2026-05-09T15:09:53+00:00"
+        }
+      }
+    },
+    "iteration": {
+      "active_version": "1",
+      "deprecated_versions": [],
+      "versions": {
+        "1": {
+          "file_path": "generated/demo/workflows/iteration__v1.py",
+          "class_name": "Iteration_v1",
+          "source_hash": "6511caac8bd194fb0d810213b0f5af4cee14b3f61b91e89ec1456f838bc79210",
+          "build_id": null,
+          "generated_at": "2026-05-09T15:09:53+00:00"
+        }
+      }
+    },
+    "parallel": {
+      "active_version": "1",
+      "deprecated_versions": [],
+      "versions": {
+        "1": {
+          "file_path": "generated/demo/workflows/parallel__v1.py",
+          "class_name": "Parallel_v1",
+          "source_hash": "c7ff8600b273831d2e67242023290fec0f803e139a2cf4b1b8c554af945c1204",
+          "build_id": null,
+          "generated_at": "2026-05-09T15:09:53+00:00"
+        }
+      }
+    },
+    "error_handling": {
+      "active_version": "1",
+      "deprecated_versions": [],
+      "versions": {
+        "1": {
+          "file_path": "generated/demo/workflows/error_handling__v1.py",
+          "class_name": "ErrorHandling_v1",
+          "source_hash": "86f61cd088b7464a66b7ec5f6688c47d5775c03ae5451327e6285d561b70819c",
+          "build_id": null,
+          "generated_at": "2026-05-09T15:09:53+00:00"
         }
       }
     }

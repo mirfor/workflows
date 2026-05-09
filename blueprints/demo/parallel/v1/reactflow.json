@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "parallel",
+    "version": "1",
+    "summary": "Fork test: 3 parallel branches via wait-all join.",
+    "use": {
+      "functions": {},
+      "timeouts": {
+        "default_timeout": { "after": "PT2M" }
+      }
+    }
+  },
+  "nodes": [
+    { "id": "trigger", "type": "manual_trigger", "data": {} },
+    {
+      "id": "spread",
+      "type": "fork",
+      "data": { "compete": false }
+    },
+    {
+      "id": "branch_a",
+      "type": "set",
+      "data": { "assignments": { "name": "branch_a", "result": 1 } }
+    },
+    {
+      "id": "branch_b",
+      "type": "set",
+      "data": { "assignments": { "name": "branch_b", "result": 2 } }
+    },
+    {
+      "id": "branch_c",
+      "type": "set",
+      "data": { "assignments": { "name": "branch_c", "result": 3 } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "spread" },
+    { "id": "e2", "source": "spread", "target": "branch_a", "sourceHandle": "branch_0" },
+    { "id": "e3", "source": "spread", "target": "branch_b", "sourceHandle": "branch_1" },
+    { "id": "e4", "source": "spread", "target": "branch_c", "sourceHandle": "branch_2" }
+  ]
+}

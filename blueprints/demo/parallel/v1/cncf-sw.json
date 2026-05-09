@@ -1,0 +1,64 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "demo",
+    "name": "parallel",
+    "version": "1",
+    "summary": "Fork test: 3 parallel branches via wait-all join."
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {},
+    "retries": {},
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT2M"
+      }
+    }
+  },
+  "do": [
+    {
+      "spread": {
+        "fork": {
+          "branches": [
+            {
+              "branch_a": {
+                "set": {
+                  "name": "branch_a",
+                  "result": 1
+                }
+              }
+            },
+            {
+              "branch_b": {
+                "set": {
+                  "name": "branch_b",
+                  "result": 2
+                }
+              }
+            },
+            {
+              "branch_c": {
+                "set": {
+                  "name": "branch_c",
+                  "result": 3
+                }
+              }
+            }
+          ],
+          "compete": false
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

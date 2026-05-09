@@ -1,0 +1,62 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "demo",
+    "name": "error_handling",
+    "version": "1",
+    "summary": "Try/catch test: raise ValidationError; catch + recovery set."
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {},
+    "retries": {},
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT2M"
+      }
+    }
+  },
+  "do": [
+    {
+      "wrap": {
+        "try": [
+          {
+            "always_fail": {
+              "raise": {
+                "error": "ValidationError"
+              }
+            }
+          }
+        ],
+        "catch": {
+          "errors": {
+            "with": {
+              "type": "ValidationError"
+            }
+          },
+          "as": "err",
+          "do": [
+            {
+              "recover": {
+                "set": {
+                  "recovered": true,
+                  "error_caught": "ValidationError"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

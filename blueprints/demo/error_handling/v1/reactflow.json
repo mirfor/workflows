@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "error_handling",
+    "version": "1",
+    "summary": "Try/catch test: raise ValidationError; catch + recovery set.",
+    "use": {
+      "functions": {},
+      "timeouts": { "default_timeout": { "after": "PT2M" } }
+    }
+  },
+  "nodes": [
+    { "id": "trigger", "type": "manual_trigger", "data": {} },
+    {
+      "id": "wrap",
+      "type": "try",
+      "data": {
+        "catches": [
+          { "errorType": "ValidationError", "as": "err", "do": ["recover"] }
+        ]
+      }
+    },
+    {
+      "id": "always_fail",
+      "type": "raise",
+      "parentNode": "wrap",
+      "data": { "error": "ValidationError" }
+    },
+    {
+      "id": "recover",
+      "type": "set",
+      "data": { "assignments": { "recovered": true, "error_caught": "ValidationError" } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "wrap" }
+  ]
+}

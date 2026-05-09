@@ -248,22 +248,35 @@ def _compute_branch_ownership(
     nodes_by_id: dict[str, dict[str, Any]],
     outgoing: dict[str, list[dict[str, Any]]],
 ) -> dict[str, str]:
-    """Dla każdego switch wykonaj BFS od targetu każdego case; nodes osiągalne wyłącznie
-    z jednego case → owned by that case (klucz: node_id, wartość: <switch_id>:<case_id>).
+    """BFS branch ownership dla switch / fork / try (catch handlers).
 
-    Nodes osiągalne z wielu cases (lub spoza switch) → traktowane jako shared,
-    pozostają w top-level scope. Decyzja F3.E.1 (naprawa switch flow).
+    Nodes osiągalne wyłącznie z jednej gałęzi → owned by that branch
+    (klucz: node_id, wartość: <branching_id>:<handle_or_case>).
+    Nodes shared (multi-branch reachable) → bez ownera, pozostają w top-level scope.
     """
-    # Per case: zbiór downstream nodes (BFS, nie wchodzi w inne switche)
     case_reach: dict[str, set[str]] = {}
-    for switch_id, n in nodes_by_id.items():
-        if n.get("type") != "switch":
+
+    # Switch — outgoing edges per case_<id>/default
+    for branching_id, n in nodes_by_id.items():
+        if n.get("type") not in {"switch", "fork", "listen"}:
             continue
-        for edge in outgoing.get(switch_id, []):
-            handle = edge.get("sourceHandle", "")
+        for edge in outgoing.get(branching_id, []):
+            handle = edge.get("sourceHandle") or "default"
             target = edge["target"]
-            label = f"{switch_id}:{handle or 'default'}"
+            label = f"{branching_id}:{handle}"
             case_reach[label] = _bfs_excluding_switches(target, outgoing, nodes_by_id)
+
+    # Try — `data.catches[]` referuje nodes po nazwie w `do: [<node_id>, ...]`
+    for try_id, n in nodes_by_id.items():
+        if n.get("type") != "try":
+            continue
+        for ci, c in enumerate(n.get("data", {}).get("catches", []) or []):
+            for handler_id in c.get("do") or []:
+                if handler_id in nodes_by_id:
+                    label = f"{try_id}:catch_{ci}_{handler_id}"
+                    case_reach[label] = _bfs_excluding_switches(
+                        handler_id, outgoing, nodes_by_id
+                    )
 
     # Każdy node przypisany do swojego owner-a tylko jeśli należy do dokładnie 1 case
     ownership: dict[str, str] = {}
@@ -271,7 +284,6 @@ def _compute_branch_ownership(
         for nid in reach:
             other_owners = [lbl for lbl, r in case_reach.items() if lbl != label and nid in r]
             if other_owners:
-                # node shared → top-level, usuń z ownership
                 ownership.pop(nid, None)
                 continue
             if nid in ownership and ownership[nid] != label:

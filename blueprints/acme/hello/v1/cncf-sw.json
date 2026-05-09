@@ -1,0 +1,39 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "acme",
+    "name": "hello",
+    "version": "1",
+    "summary": "Cross-tenant isolation: ten Blueprint należy do Tenanta `acme`, niewidoczny dla worker --tenant demo."
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {},
+    "retries": {},
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT1M"
+      }
+    }
+  },
+  "do": [
+    {
+      "greet": {
+        "set": {
+          "tenant": "acme",
+          "message": "Hello z Tenanta acme!"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

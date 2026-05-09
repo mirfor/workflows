@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "iteration",
+    "version": "1",
+    "summary": "For-loop test: iterate over input.items, log each, count.",
+    "use": {
+      "functions": {
+        "log_message": {
+          "name": "log_message",
+          "type": "weaver_tool",
+          "module": "activities.tools.log_message",
+          "operation": "log_message",
+          "errors": [],
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        }
+      },
+      "timeouts": {
+        "default_timeout": {
+          "after": "PT2M",
+          "metadata": { "temporal": { "heartbeat": "PT30S" } }
+        }
+      }
+    }
+  },
+  "nodes": [
+    { "id": "trigger", "type": "manual_trigger", "data": {} },
+    {
+      "id": "loop",
+      "type": "for",
+      "data": { "each": "item", "in": ".input.items" }
+    },
+    {
+      "id": "log_each",
+      "type": "set",
+      "parentNode": "loop",
+      "data": { "assignments": { "ref": "$item" } }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "loop" }
+  ]
+}

@@ -1,4 +1,4 @@
-# Generated from Blueprint demo/sample v1 at 2026-05-09T15:05:32+00:00
+# Generated from Blueprint demo/sample v1 at 2026-05-09T15:09:53+00:00
 # Source hash: b748ac96fca8765bd9825224aecdaeb9f245947c1888848c19f9617af041f469
 # DO NOT EDIT — regeneruj przez generator (`scripts/regenerate_*` lub publish flow).
 from __future__ import annotations

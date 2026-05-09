@@ -297,12 +297,14 @@ def _build_task_stmts(
         return _build_switch(name, task, ctx_var, steps_var, workflow)
     if isinstance(task, TryTask):
         return _build_try(name, task, workflow, ctx_var, steps_var)
-    if isinstance(task, (ForTask, ForkTask, ListenTask, RunTask)):
-        # MVP: placeholder, walidator ostrzega
-        return ast.parse(
-            f'raise ApplicationError("Task type \'{type(task).__name__}\' '
-            f'not yet implemented in MVP generator", non_retryable=True)'
-        ).body
+    if isinstance(task, ForTask):
+        return _build_for(name, task, workflow, ctx_var, steps_var)
+    if isinstance(task, ForkTask):
+        return _build_fork(name, task, workflow, ctx_var, steps_var)
+    if isinstance(task, ListenTask):
+        return _build_listen(name, task, ctx_var, steps_var)
+    if isinstance(task, RunTask):
+        return _build_run(name, task, ctx_var, steps_var)
 
     raise GeneratorError(f"Niewspierany task type: {type(task).__name__} dla {name!r}.")
 
@@ -524,6 +526,125 @@ def _build_try(
         body=catch_body,
     )
     return [ast.Try(body=try_body or [ast.Pass()], handlers=[handler], orelse=[], finalbody=[])]
+
+
+def _build_for(
+    name: str, task: ForTask, workflow: Workflow, ctx_var: str, steps_var: str
+) -> list[ast.stmt]:
+    """For loop: `for <each> in _eval(<in>, ctx): <do body>`. Decyzja #6 / #15."""
+    each = task.for_.each
+    in_expr = task.for_.in_
+
+    # Body wrapped: aktualizuj ctx[each] żeby JQ w body mógł odwołać się do bieżącego elementu
+    body: list[ast.stmt] = ast.parse(f"{ctx_var}[{each!r}] = {each}").body
+    for named in task.do:
+        body.extend(_build_task_stmts(named, workflow, ctx_var, steps_var))
+
+    init = ast.parse(f"{steps_var}[{name!r}] = []").body
+    for_stmt = ast.For(
+        target=ast.Name(each, ast.Store()),
+        iter=ast.parse(f"_eval({in_expr!r}, {ctx_var})", mode="eval").body,
+        body=body,
+        orelse=[],
+    )
+    # Append iteration result do listy steps_output[name]
+    body.append(
+        ast.parse(f"{steps_var}[{name!r}].append({each})").body[0]
+    )
+    return init + [for_stmt]
+
+
+def _build_fork(
+    name: str, task: ForkTask, workflow: Workflow, ctx_var: str, steps_var: str
+) -> list[ast.stmt]:
+    """Fork: równoległe wykonanie branches via `asyncio.gather`/`asyncio.wait`.
+
+    Każdy branch = pojedynczy NamedTask. Generator emituje async helper functions,
+    potem wywołuje je równolegle. `compete=True` → FIRST_COMPLETED + cancel reszty.
+    """
+    branches = task.fork.branches
+    compete = task.fork.compete
+
+    fn_defs: list[ast.stmt] = []
+    fn_calls: list[str] = []
+    for i, branch_dict in enumerate(branches):
+        b_name, _b_task = next(iter(branch_dict.items()))
+        b_body = _build_task_stmts(branch_dict, workflow, ctx_var, steps_var)
+        fn_name = f"_branch_{name}_{i}"
+        fn = ast.AsyncFunctionDef(
+            name=fn_name,
+            args=ast.arguments(
+                posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]
+            ),
+            body=b_body or [ast.Pass()],
+            decorator_list=[],
+            returns=None,
+            type_comment=None,
+        )
+        fn_defs.append(fn)
+        fn_calls.append(f"{fn_name}()")
+
+    if compete:
+        await_stmt = ast.parse(
+            "await asyncio.wait(\n"
+            f"    [asyncio.create_task(c) for c in [{', '.join(fn_calls)}]],\n"
+            "    return_when=asyncio.FIRST_COMPLETED,\n"
+            ")"
+        ).body
+    else:
+        await_stmt = ast.parse(f"await asyncio.gather({', '.join(fn_calls)})").body
+
+    set_stmt = ast.parse(
+        f'{steps_var}[{name!r}] = "completed"'
+    ).body
+    return fn_defs + await_stmt + set_stmt
+
+
+def _build_listen(
+    name: str, task: ListenTask, ctx_var: str, steps_var: str
+) -> list[ast.stmt]:
+    """Listen: subskrypcja eventów. MVP: minimal — workflow.wait_condition na flagę
+    sygnałową (nazwa = `name`). Pełna obsługa signal handlers zarejestrowanych przez
+    `@workflow.signal` decorator wymaga rozszerzenia generatora w F5+ (post-MVP).
+
+    W MVP emit informacyjny placeholder + steps_output[name] = "listened".
+    """
+    # MVP: workflow.wait_condition zawsze przejdzie (lambda: True) → no-op listener
+    return ast.parse(
+        "await workflow.wait_condition(lambda: True)\n"
+        f'{steps_var}[{name!r}] = "listened"'
+    ).body
+
+
+def _build_run(
+    name: str, task: RunTask, ctx_var: str, steps_var: str
+) -> list[ast.stmt]:
+    """Run: child workflow / script / shell / container.
+
+    MVP: pełna obsługa `run.workflow` (child workflow). Pozostałe (script/shell/container)
+    emitują rekord w `steps_output` z marker `run_external_skipped_in_mvp` — do zaimplementowania
+    przez activity dispatcher post-MVP.
+    """
+    spec = task.run
+    if spec.workflow is not None:
+        wf_ref = spec.workflow.name
+        wf_input = spec.workflow.input or {}
+        wf_id = f"{name}-child"
+        return ast.parse(
+            f"{name}_result = await workflow.execute_child_workflow(\n"
+            f"    {wf_ref!r}, {_repr(wf_input)}, id={wf_id!r}\n"
+            ")\n"
+            f"{steps_var}[{name!r}] = {name}_result"
+        ).body
+
+    kind = next(
+        (k for k in ("script", "shell", "container") if getattr(spec, k) is not None),
+        "unknown",
+    )
+    return ast.parse(
+        f'{steps_var}[{name!r}] = '
+        f'{{"_marker": "run_external_skipped_in_mvp", "kind": {kind!r}}}'
+    ).body
 
 
 # ---------- Helpers -------------------------------------------------------------

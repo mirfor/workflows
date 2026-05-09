@@ -110,9 +110,15 @@ def test_decision_05_cncfsw_pydantic_models() -> None:
 
 
 def test_decision_06_all_12_task_types_supported() -> None:
-    """#6: 12 task types CNCF SW 1.0 wszystkie w MVP (Pydantic + mapper + generator)."""
+    """#6: 12 task types CNCF SW 1.0 wszystkie w MVP — Pydantic + mapper + generator
+    emitują **realny kod** dla każdego, BEZ placeholder `not yet implemented`.
+    """
+    from datetime import UTC, datetime
+
+    from generator import generate
     from ir import (
         CallTask,
+        Document,
         DoTask,
         EmitTask,
         ForkTask,
@@ -122,17 +128,57 @@ def test_decision_06_all_12_task_types_supported() -> None:
         RunTask,
         SetTask,
         SwitchTask,
+        ToolFunction,
         TryTask,
+        Use,
         WaitTask,
+        Workflow,
     )
+
     types = [CallTask, DoTask, EmitTask, ForkTask, ForTask, ListenTask,
              RaiseTask, RunTask, SetTask, SwitchTask, TryTask, WaitTask]
     assert len({t.__name__ for t in types}) == 12
 
-    # Mapper musi obsługiwać wszystkie 12
-    # Generator musi emitować wszystkie 12 (bez NotImplementedError placeholder)
+    # Mapper i generator wszystkie 12 obsługuje
+    # Compliance: dla każdego task type istnieje realny `_build_*` w generatorze (nie placeholder)
+    import inspect
+
+    from generator import codegen
     from generator.codegen import _build_task_stmts  # noqa: F401
     from mapper.reactflow_to_cncfsw import _build_task  # noqa: F401
+    src = inspect.getsource(codegen)
+    assert "not yet implemented" not in src, \
+        "Generator zawiera placeholder dla niektórych task types (#6 nie spełnione)"
+
+    # Smoke: generuj workflow z wszystkimi 12 task types — sprawdź że produkt nie ma placeholder
+    wf = Workflow(
+        document=Document(dsl="1.0.0", namespace="t", name="all", version="1"),
+        use=Use(functions={
+            "fn": ToolFunction(name="fn", type="weaver_tool",
+                               module="activities.tools.log_message",
+                               operation="log_message", errors=[]),
+        }),
+        do=[
+            {"c": CallTask(call="fn")},
+            {"d": DoTask(do=[{"d_inner": SetTask(set={})}])},
+            {"f": ForTask(**{"for": {"each": "i", "in": ".input.x"}}, do=[
+                {"f_body": SetTask(set={})},
+            ])},
+            {"fk": ForkTask(fork={"branches": [{"b1": SetTask(set={})}], "compete": False})},
+            {"sw": SwitchTask(switch=[{"a": {"when": ".x", "then": "end"}}])},
+            {"tr": TryTask(**{"try": [{"inner": SetTask(set={})}]},
+                            catch={"as": "e"})},
+            {"w": WaitTask(wait="PT1S")},
+            {"l": ListenTask(listen={"to": {"one": {"source": "s", "event_type": "e"}}})},
+            {"em": EmitTask(emit={"event": {}})},
+            {"rs": RaiseTask(**{"raise": {"error": "X"}})},
+            {"rn": RunTask(run={"workflow": {"name": "other"}})},
+            {"st": SetTask(set={})},
+        ],
+    )
+    g = generate(wf, tenant_id="t", generated_at=datetime(2026, 1, 1, tzinfo=UTC))
+    assert "not yet implemented" not in g.source
+    assert "raise NotImplementedError" not in g.source
 
 
 def test_decision_07_tools_agents_as_functions() -> None:

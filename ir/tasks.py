@@ -228,16 +228,23 @@ class SetTask(_TaskBase):
 
 
 def _task_discriminator(v: Any) -> str | None:
-    """Rozpoznanie task type po obecności pola-klucza (CNCF SW spec)."""
+    """Rozpoznanie task type po obecności pola-klucza (CNCF SW spec).
+
+    Kolejność: pola dyskryminujące najpierw (call, for, fork, switch, try, wait, listen, emit,
+    raise, run, set), `do` jako ostatni — bo ForTask/TryTask również MAJĄ `do` field jako body,
+    a discriminator musi zwrócić bardziej-specific tag dla nich.
+    """
+    discriminator_order = (
+        "call", "for", "fork", "switch", "try", "wait", "listen", "emit", "raise", "run", "set",
+        "do",  # last resort — czysty DoTask
+    )
     if not isinstance(v, dict):
-        for key in ("call", "do", "for", "fork", "switch", "try", "wait", "listen",
-                    "emit", "raise", "run", "set"):
+        for key in discriminator_order:
             attr = key + "_" if key in {"for", "try", "raise"} else key
             if getattr(v, attr, None) is not None:
                 return key
         return None
-    for key in ("call", "do", "for", "fork", "switch", "try", "wait", "listen",
-                "emit", "raise", "run", "set"):
+    for key in discriminator_order:
         if key in v:
             return key
     return None

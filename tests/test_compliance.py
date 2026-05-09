@@ -84,7 +84,6 @@ def test_decision_05_cncfsw_pydantic_models() -> None:
     Workflow.model_validate(dumped)
 
 
-@pytest.mark.xfail(reason="#6 — wszystkie 12 task types w MVP", strict=False)
 def test_decision_06_all_12_task_types_supported() -> None:
     """#6: 12 task types CNCF SW 1.0 wszystkie w MVP (Pydantic + mapper + generator)."""
     from ir import (
@@ -161,7 +160,6 @@ def test_decision_11_jq_compiled_from_ui() -> None:
     assert not _exists("prompts/")
 
 
-@pytest.mark.xfail(reason="#12 — auto-export steps_output", strict=False)
 def test_decision_12_auto_export_steps_output() -> None:
     """#12: Generator emituje `steps_output["<id>"] = ...` po każdym task."""
     from datetime import UTC, datetime
@@ -180,7 +178,6 @@ def test_decision_13_pydantic_io_schemas() -> None:
     assert "properties" in schema or "$defs" in schema or "definitions" in schema
 
 
-@pytest.mark.xfail(reason="#14 — generated/<tenant>/workflows layout", strict=False)
 def test_decision_14_generated_py_layout() -> None:
     """#14: `generated/<tenant>/workflows/<snake>__v<n>.py` + header + black."""
     from datetime import UTC, datetime
@@ -196,7 +193,6 @@ def test_decision_14_generated_py_layout() -> None:
     assert "DO NOT EDIT" in g.source
 
 
-@pytest.mark.xfail(reason="#15 — generator AST + libjq", strict=False)
 def test_decision_15_ast_generator_jq_libjq() -> None:
     """#15: Generator używa Python `ast` module (nie string templating); `_eval()` z compiled JQ cache."""
     import ast
@@ -219,7 +215,6 @@ def test_decision_16_validator_six_categories() -> None:
         assert prefix in src or True  # `True` dopóki implementator zaimplementuje wszystkie
 
 
-@pytest.mark.xfail(reason="#17 — manifest active/deprecated/build_id_lineage", strict=False)
 def test_decision_17_versioning_lifecycle_manifest() -> None:
     """#17: Manifest entry: active_version, deprecated_versions, build_id_lineage."""
     from generator.manifest import update_manifest  # noqa: F401
@@ -311,7 +306,6 @@ def test_decision_25_multi_catch_compilation() -> None:
     # Pełny test wymaga RF JSON z multi-catch — placeholder
 
 
-@pytest.mark.xfail(reason="#26 — fail-fast uncaught", strict=False)
 def test_decision_26_fail_fast_uncaught() -> None:
     """#26: Generator nie emituje workflow-level catch ani retry policy."""
     from datetime import UTC, datetime

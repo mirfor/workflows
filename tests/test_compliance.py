@@ -207,7 +207,6 @@ def test_decision_15_ast_generator_jq_libjq() -> None:
     assert "_JQ_CACHE" in src or "jq.compile" in src
 
 
-@pytest.mark.xfail(reason="#16 — walidator 6 kategorii", strict=False)
 def test_decision_16_validator_six_categories() -> None:
     """#16: Walidator emituje codes w schemacie <A-F><NNN>; error blokuje publish."""
     from validator import Severity, validate  # noqa: F401
@@ -268,7 +267,6 @@ def test_decision_20_profile_based_policies() -> None:
     assert "t1" in use.timeouts
 
 
-@pytest.mark.xfail(reason="#21 — retry unsupported fields blocked", strict=False)
 def test_decision_21_retry_unsupported_fields_blocked() -> None:
     """#21: Walidator blokuje retry pola bez Temporal mapping (jitter, when, exceptWhen, limit.duration, limit.attempt.duration)."""
     from ir import RetryJitter, RetryLimit, RetryLimitAttempt, RetryPolicy, Use, Workflow, Document

@@ -90,11 +90,11 @@ Pydantic models są fundamentem (code-first, decyzja #13). IR_SPEC i ir.schema.j
 
 | ID | Task | Delegate | Deps | Decyzja | Status | Started | Completed |
 |----|------|----------|------|---------|--------|---------|-----------|
-| F2.1 | Pydantic models CNCF SW 1.0 — 12 task types, `use.retries`, `use.timeouts`, base error types, `document.metadata.temporal.*` extensions | M | F1.7 | #5, #6, #7, #8, #20, #21, #22, #23 | `[ ]` | — | — |
-| F2.2 | `IR_SPEC.md` — code-first dump z Pydantic + przykłady | M | F2.1 | #5, #19 | `[ ]` | — | — |
-| F2.3 | `schemas/ir.schema.json` auto-generated z Pydantic (`model_json_schema()`) | M | F2.1 | #13 | `[ ]` | — | — |
-| F2.4 | `WORKFLOW_RULES.md` — Temporal sandbox restrictions, dozwolone wzorce, libjq sandbox check | S | F1.7 | #15 | `[ ]` | — | — |
-| F2.5 | `ACTIVITY_CATALOG.md` — format manifestu (Tools / Specialized Agents / errors), kontrakty I/O | S | F1.7 | #7, #13, #18, #23 | `[ ]` | — | — |
+| F2.1 | Pydantic models CNCF SW 1.0 — 12 task types, `use.retries`, `use.timeouts`, base error types, `document.metadata.temporal.*` extensions | M | F1.7 | #5, #6, #7, #8, #20, #21, #22, #23 | `[x]` | 2026-05-09 15:34 | 2026-05-09 15:48 |
+| F2.2 | `IR_SPEC.md` — code-first dump z Pydantic + przykłady | M | F2.1 | #5, #19 | `[x]` | 2026-05-09 15:48 | 2026-05-09 15:54 |
+| F2.3 | `schemas/ir.schema.json` auto-generated z Pydantic (`model_json_schema()`) | M | F2.1 | #13 | `[x]` | 2026-05-09 15:48 | 2026-05-09 15:50 |
+| F2.4 | `WORKFLOW_RULES.md` — Temporal sandbox restrictions, dozwolone wzorce, libjq sandbox check | S | F1.7 | #15 | `[x]` | 2026-05-09 15:34 | 2026-05-09 15:36 |
+| F2.5 | `ACTIVITY_CATALOG.md` — format manifestu (Tools / Specialized Agents / errors), kontrakty I/O | S | F1.7 | #7, #13, #18, #23 | `[x]` | 2026-05-09 15:34 | 2026-05-09 15:35 |
 
 ---
 

@@ -1,0 +1,2916 @@
+{
+  "$defs": {
+    "Backoff": {
+      "additionalProperties": false,
+      "description": "Dokładnie jeden z trybów. Walidator sprawdza wzajemną wyłączność.",
+      "properties": {
+        "exponential": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackoffExponential"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "constant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackoffConstant"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "linear": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackoffLinear"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "Backoff",
+      "type": "object"
+    },
+    "BackoffConstant": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "BackoffConstant",
+      "type": "object"
+    },
+    "BackoffExponential": {
+      "additionalProperties": false,
+      "properties": {
+        "multiplier": {
+          "description": "Backoff coefficient (Temporal: backoff_coefficient).",
+          "exclusiveMinimum": 0,
+          "title": "Multiplier",
+          "type": "number"
+        }
+      },
+      "required": [
+        "multiplier"
+      ],
+      "title": "BackoffExponential",
+      "type": "object"
+    },
+    "BackoffLinear": {
+      "additionalProperties": false,
+      "properties": {
+        "increment": {
+          "title": "Increment",
+          "type": "string"
+        }
+      },
+      "required": [
+        "increment"
+      ],
+      "title": "BackoffLinear",
+      "type": "object"
+    },
+    "CallTask": {
+      "additionalProperties": false,
+      "description": "`call` — wywołanie funkcji z `Use.functions.<name>` (Tool / Specialized Agent).",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "call": {
+          "minLength": 1,
+          "title": "Call",
+          "type": "string"
+        },
+        "with": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "With"
+        }
+      },
+      "required": [
+        "call"
+      ],
+      "title": "CallTask",
+      "type": "object"
+    },
+    "DoTask": {
+      "additionalProperties": false,
+      "description": "`do` — sekwencja podzadań.",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "do": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Do",
+          "type": "array"
+        }
+      },
+      "required": [
+        "do"
+      ],
+      "title": "DoTask",
+      "type": "object"
+    },
+    "Document": {
+      "additionalProperties": false,
+      "properties": {
+        "dsl": {
+          "const": "1.0.0",
+          "default": "1.0.0",
+          "title": "Dsl",
+          "type": "string"
+        },
+        "namespace": {
+          "minLength": 1,
+          "title": "Namespace",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        }
+      },
+      "required": [
+        "namespace",
+        "name",
+        "version"
+      ],
+      "title": "Document",
+      "type": "object"
+    },
+    "EmitTask": {
+      "additionalProperties": false,
+      "description": "`emit` — publikacja eventu.",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "emit": {
+          "$ref": "#/$defs/_EmitEvent"
+        }
+      },
+      "required": [
+        "emit"
+      ],
+      "title": "EmitTask",
+      "type": "object"
+    },
+    "ErrorDefinition": {
+      "additionalProperties": false,
+      "description": "Definicja erroru w `Use.errors.<name>` (CNCF SW spec).",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "instance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ErrorDefinition",
+      "type": "object"
+    },
+    "ErrorReference": {
+      "additionalProperties": false,
+      "description": "Filtr błędów w `try.catch.errors.with` lub argument do `raise.error`.",
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Type"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        },
+        "instance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "when": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "When"
+        },
+        "exceptWhen": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exceptwhen"
+        }
+      },
+      "title": "ErrorReference",
+      "type": "object"
+    },
+    "ErrorSpec": {
+      "additionalProperties": false,
+      "description": "Wpis w manifest `tools[*].errors[*]` lub `specialized_agents[*].errors[*]`.",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "retryable": {
+          "default": true,
+          "title": "Retryable",
+          "type": "boolean"
+        },
+        "output_schema_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Schema Ref"
+        },
+        "is_base": {
+          "default": false,
+          "title": "Is Base",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ErrorSpec",
+      "type": "object"
+    },
+    "ForTask": {
+      "additionalProperties": false,
+      "description": "`for` — iteracja po kolekcji.",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "for": {
+          "$ref": "#/$defs/_ForLoop"
+        },
+        "while": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "While"
+        },
+        "do": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Do",
+          "type": "array"
+        }
+      },
+      "required": [
+        "for",
+        "do"
+      ],
+      "title": "ForTask",
+      "type": "object"
+    },
+    "ForkTask": {
+      "additionalProperties": false,
+      "description": "`fork` — równoległe wykonanie branchy.",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "fork": {
+          "$ref": "#/$defs/_ForkBranches"
+        }
+      },
+      "required": [
+        "fork"
+      ],
+      "title": "ForkTask",
+      "type": "object"
+    },
+    "Input": {
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema"
+        },
+        "from": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From"
+        }
+      },
+      "title": "Input",
+      "type": "object"
+    },
+    "ListenTask": {
+      "additionalProperties": false,
+      "description": "`listen` — subskrypcja eventów (signal/event consumption).",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "listen": {
+          "additionalProperties": {
+            "$ref": "#/$defs/_ListenStrategy"
+          },
+          "title": "Listen",
+          "type": "object"
+        },
+        "foreach": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Foreach"
+        }
+      },
+      "required": [
+        "listen"
+      ],
+      "title": "ListenTask",
+      "type": "object"
+    },
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "schema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        }
+      },
+      "title": "Output",
+      "type": "object"
+    },
+    "RaiseTask": {
+      "additionalProperties": false,
+      "description": "`raise` — rzucenie erroru.",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "raise": {
+          "$ref": "#/$defs/_RaiseSpec"
+        }
+      },
+      "required": [
+        "raise"
+      ],
+      "title": "RaiseTask",
+      "type": "object"
+    },
+    "RetryJitter": {
+      "additionalProperties": false,
+      "description": "CNCF SW jitter — NIE mapuje się na Temporal API; walidator blokuje publish (#21).",
+      "properties": {
+        "from": {
+          "title": "From",
+          "type": "string"
+        },
+        "to": {
+          "title": "To",
+          "type": "string"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "title": "RetryJitter",
+      "type": "object"
+    },
+    "RetryLimit": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryLimitAttempt"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration"
+        }
+      },
+      "title": "RetryLimit",
+      "type": "object"
+    },
+    "RetryLimitAttempt": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Count"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration"
+        }
+      },
+      "title": "RetryLimitAttempt",
+      "type": "object"
+    },
+    "RetryPolicy": {
+      "additionalProperties": false,
+      "description": "Profil retry definiowany w `Use.retries.<name>` lub inline.\n\nPola CNCF SW spec + Temporal extensions w `metadata.temporal.*`.\nPola bez mapping na Temporal (`when`, `exceptWhen`, `jitter`, `limit.duration`,\n`limit.attempt.duration`) — walidator IR blokuje publish (#21).",
+      "properties": {
+        "when": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "When"
+        },
+        "exceptWhen": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exceptwhen"
+        },
+        "delay": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Delay"
+        },
+        "backoff": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Backoff"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryLimit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "jitter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryJitter"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "nonRetryableTypes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Nonretryabletypes",
+          "type": "array"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        }
+      },
+      "title": "RetryPolicy",
+      "type": "object"
+    },
+    "RunTask": {
+      "additionalProperties": false,
+      "description": "`run` — uruchomienie zewnętrznego procesu/workflow.",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "run": {
+          "$ref": "#/$defs/_RunSpec"
+        }
+      },
+      "required": [
+        "run"
+      ],
+      "title": "RunTask",
+      "type": "object"
+    },
+    "SetTask": {
+      "additionalProperties": false,
+      "description": "`set` — mutacja kontekstu (przypisanie wartości pod klucze w globalnym kontekście).",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "set": {
+          "additionalProperties": true,
+          "title": "Set",
+          "type": "object"
+        }
+      },
+      "required": [
+        "set"
+      ],
+      "title": "SetTask",
+      "type": "object"
+    },
+    "SpecializedAgentFunction": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "const": "weaver_specialized_agent",
+          "default": "weaver_specialized_agent",
+          "title": "Type",
+          "type": "string"
+        },
+        "operation": {
+          "title": "Operation",
+          "type": "string"
+        },
+        "inputSchema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inputschema"
+        },
+        "outputSchema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outputschema"
+        },
+        "errors": {
+          "items": {
+            "$ref": "#/$defs/ErrorSpec"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "defaultRetryProfile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defaultretryprofile"
+        },
+        "defaultTimeoutProfile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defaulttimeoutprofile"
+        },
+        "idempotent": {
+          "default": false,
+          "title": "Idempotent",
+          "type": "boolean"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "endpointUrl": {
+          "title": "Endpointurl",
+          "type": "string"
+        },
+        "openapiUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Openapiurl"
+        }
+      },
+      "required": [
+        "name",
+        "operation",
+        "endpointUrl"
+      ],
+      "title": "SpecializedAgentFunction",
+      "type": "object"
+    },
+    "SwitchTask": {
+      "additionalProperties": false,
+      "description": "`switch` — warunkowe rozgałęzienie (multi-handle w UI, decyzja #9).",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "switch": {
+          "items": {
+            "additionalProperties": {
+              "$ref": "#/$defs/_SwitchCase"
+            },
+            "type": "object"
+          },
+          "title": "Switch",
+          "type": "array"
+        }
+      },
+      "required": [
+        "switch"
+      ],
+      "title": "SwitchTask",
+      "type": "object"
+    },
+    "TimeoutPolicy": {
+      "additionalProperties": false,
+      "description": "Profil timeout w `Use.timeouts.<name>` lub inline.\n\nDecyzja #22: `after` (= Temporal `start_to_close_timeout`, **wymagane**) +\n`metadata.temporal.heartbeat` + `metadata.temporal.schedule_to_close`.\n`schedule_to_start_timeout` odłożone w MVP.",
+      "properties": {
+        "after": {
+          "title": "After",
+          "type": "string"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        }
+      },
+      "required": [
+        "after"
+      ],
+      "title": "TimeoutPolicy",
+      "type": "object"
+    },
+    "ToolFunction": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "const": "weaver_tool",
+          "default": "weaver_tool",
+          "title": "Type",
+          "type": "string"
+        },
+        "operation": {
+          "title": "Operation",
+          "type": "string"
+        },
+        "inputSchema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Inputschema"
+        },
+        "outputSchema": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outputschema"
+        },
+        "errors": {
+          "items": {
+            "$ref": "#/$defs/ErrorSpec"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "defaultRetryProfile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defaultretryprofile"
+        },
+        "defaultTimeoutProfile": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Defaulttimeoutprofile"
+        },
+        "idempotent": {
+          "default": false,
+          "title": "Idempotent",
+          "type": "boolean"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "module": {
+          "minLength": 1,
+          "title": "Module",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "operation",
+        "module"
+      ],
+      "title": "ToolFunction",
+      "type": "object"
+    },
+    "TryCatch": {
+      "additionalProperties": false,
+      "description": "Pojedynczy `catch` (CNCF SW singular — multi-catch UI kompiluje do switch w `do`, #25).",
+      "properties": {
+        "errors": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/ErrorReference"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errors"
+        },
+        "as": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "when": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "When"
+        },
+        "exceptWhen": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exceptwhen"
+        },
+        "retry": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry"
+        },
+        "do": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Do"
+        }
+      },
+      "title": "TryCatch",
+      "type": "object"
+    },
+    "TryTask": {
+      "additionalProperties": false,
+      "description": "`try` — error handling (#6).",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "try": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Try",
+          "type": "array"
+        },
+        "catch": {
+          "$ref": "#/$defs/TryCatch"
+        }
+      },
+      "required": [
+        "try",
+        "catch"
+      ],
+      "title": "TryTask",
+      "type": "object"
+    },
+    "Use": {
+      "additionalProperties": false,
+      "description": "Reusable definitions per CNCF SW spec — referowane przez nazwę z task fields.",
+      "properties": {
+        "authentications": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Authentications",
+          "type": "object"
+        },
+        "errors": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ErrorDefinition"
+          },
+          "title": "Errors",
+          "type": "object"
+        },
+        "extensions": {
+          "additionalProperties": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Extensions",
+          "type": "object"
+        },
+        "functions": {
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ToolFunction"
+              },
+              {
+                "$ref": "#/$defs/SpecializedAgentFunction"
+              }
+            ]
+          },
+          "title": "Functions",
+          "type": "object"
+        },
+        "retries": {
+          "additionalProperties": {
+            "$ref": "#/$defs/RetryPolicy"
+          },
+          "title": "Retries",
+          "type": "object"
+        },
+        "secrets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Secrets",
+          "type": "array"
+        },
+        "timeouts": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TimeoutPolicy"
+          },
+          "title": "Timeouts",
+          "type": "object"
+        }
+      },
+      "title": "Use",
+      "type": "object"
+    },
+    "WaitTask": {
+      "additionalProperties": false,
+      "description": "`wait` — pauza.",
+      "properties": {
+        "if": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "If"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        },
+        "output": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
+        "export": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_Export"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TimeoutPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout"
+        },
+        "retries": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RetryPolicy"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retries"
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metadata"
+        },
+        "wait": {
+          "title": "Wait",
+          "type": "string"
+        }
+      },
+      "required": [
+        "wait"
+      ],
+      "title": "WaitTask",
+      "type": "object"
+    },
+    "_EmitEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "additionalProperties": true,
+          "title": "Event",
+          "type": "object"
+        }
+      },
+      "required": [
+        "event"
+      ],
+      "title": "_EmitEvent",
+      "type": "object"
+    },
+    "_Export": {
+      "additionalProperties": false,
+      "properties": {
+        "as": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "As"
+        },
+        "schema": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema"
+        }
+      },
+      "title": "_Export",
+      "type": "object"
+    },
+    "_ForLoop": {
+      "additionalProperties": false,
+      "properties": {
+        "each": {
+          "minLength": 1,
+          "title": "Each",
+          "type": "string"
+        },
+        "in": {
+          "minLength": 1,
+          "title": "In",
+          "type": "string"
+        },
+        "at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "At"
+        }
+      },
+      "required": [
+        "each",
+        "in"
+      ],
+      "title": "_ForLoop",
+      "type": "object"
+    },
+    "_ForkBranches": {
+      "additionalProperties": false,
+      "properties": {
+        "branches": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Branches",
+          "type": "array"
+        },
+        "compete": {
+          "default": false,
+          "title": "Compete",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "branches"
+      ],
+      "title": "_ForkBranches",
+      "type": "object"
+    },
+    "_ListenStrategy": {
+      "additionalProperties": false,
+      "properties": {
+        "all": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "All"
+        },
+        "any": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Any"
+        },
+        "one": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "One"
+        }
+      },
+      "title": "_ListenStrategy",
+      "type": "object"
+    },
+    "_RaiseSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ErrorReference"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Error"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "_RaiseSpec",
+      "type": "object"
+    },
+    "_RunContainer": {
+      "additionalProperties": false,
+      "properties": {
+        "image": {
+          "title": "Image",
+          "type": "string"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "arguments": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Arguments",
+          "type": "array"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        }
+      },
+      "required": [
+        "image"
+      ],
+      "title": "_RunContainer",
+      "type": "object"
+    },
+    "_RunScript": {
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "title": "Language",
+          "type": "string"
+        },
+        "code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "title": "_RunScript",
+      "type": "object"
+    },
+    "_RunShell": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "arguments": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Arguments",
+          "type": "array"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Environment",
+          "type": "object"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "_RunShell",
+      "type": "object"
+    },
+    "_RunSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "script": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_RunScript"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "shell": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_RunShell"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "workflow": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_RunWorkflow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "container": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/_RunContainer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "_RunSpec",
+      "type": "object"
+    },
+    "_RunWorkflow": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Namespace"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "input": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "_RunWorkflow",
+      "type": "object"
+    },
+    "_SwitchCase": {
+      "additionalProperties": false,
+      "properties": {
+        "when": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "When"
+        },
+        "then": {
+          "title": "Then",
+          "type": "string"
+        }
+      },
+      "required": [
+        "then"
+      ],
+      "title": "_SwitchCase",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "JSON Schema dla CNCF Serverless Workflow 1.0 IR z extensions Weaver/Temporal. Auto-generated z Pydantic models w `ir/`. NIE EDYTOWAĆ RĘCZNIE — regeneruj przez `uv run python -m scripts.export_ir_schema`.",
+  "properties": {
+    "document": {
+      "$ref": "#/$defs/Document"
+    },
+    "input": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Input"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "output": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Output"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "use": {
+      "$ref": "#/$defs/Use"
+    },
+    "do": {
+      "items": {
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/CallTask"
+            },
+            {
+              "$ref": "#/$defs/DoTask"
+            },
+            {
+              "$ref": "#/$defs/ForTask"
+            },
+            {
+              "$ref": "#/$defs/ForkTask"
+            },
+            {
+              "$ref": "#/$defs/SwitchTask"
+            },
+            {
+              "$ref": "#/$defs/TryTask"
+            },
+            {
+              "$ref": "#/$defs/WaitTask"
+            },
+            {
+              "$ref": "#/$defs/ListenTask"
+            },
+            {
+              "$ref": "#/$defs/EmitTask"
+            },
+            {
+              "$ref": "#/$defs/RaiseTask"
+            },
+            {
+              "$ref": "#/$defs/RunTask"
+            },
+            {
+              "$ref": "#/$defs/SetTask"
+            }
+          ]
+        },
+        "type": "object"
+      },
+      "title": "Do",
+      "type": "array"
+    },
+    "timeout": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TimeoutPolicy"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Timeout"
+    },
+    "schedule": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Schedule"
+    },
+    "metadata": {
+      "additionalProperties": true,
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "document",
+    "do"
+  ],
+  "title": "Workflow Platform Temporal — CNCF SW 1.0 IR",
+  "type": "object",
+  "$id": "https://workflows.weaver/schemas/ir.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

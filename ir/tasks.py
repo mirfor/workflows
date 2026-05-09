@@ -104,7 +104,10 @@ class _SwitchCase(StrictModel):
     when: JqExpression | None = None
     """Brak `when` = `default`. Walidator wymusza co najwyżej jeden case bez `when`."""
     then: str
-    """Nazwa następnego task lub `end`."""
+    """Nazwa następnego task lub `end`. Per CNCF SW spec — referencja po nazwie."""
+    do: list[NamedTask] | None = None
+    """Extension Weaver: inline branch body (F3.E.1).
+    Mapper rebuilduje z reachability analysis; generator emituje jako body if/elif."""
 
 
 class SwitchTask(_TaskBase):
@@ -252,6 +255,6 @@ NamedTask = dict[str, Task]  # type: ignore[misc]
 
 # Wymuszenie rebuild dla każdego task type (bo używają NamedTask w forward).
 for _cls in (
-    DoTask, ForTask, ForkTask, TryTask, TryCatch, ListenTask,
+    DoTask, ForTask, ForkTask, TryTask, TryCatch, ListenTask, _SwitchCase,
 ):
     _cls.model_rebuild(_types_namespace={"Task": Task, "NamedTask": NamedTask})

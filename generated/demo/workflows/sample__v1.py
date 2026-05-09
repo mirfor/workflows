@@ -1,5 +1,5 @@
-# Generated from Blueprint demo/sample v1 at 2026-05-09T14:53:59+00:00
-# Source hash: b85a8d6da61d6f03a5f5d8175b4313f40f0905d94d347c3ed60a2b2aec28b99f
+# Generated from Blueprint demo/sample v1 at 2026-05-09T15:00:14+00:00
+# Source hash: b748ac96fca8765bd9825224aecdaeb9f245947c1888848c19f9617af041f469
 # DO NOT EDIT — regeneruj przez generator (`scripts/regenerate_*` lub publish flow).
 from __future__ import annotations
 import asyncio
@@ -43,12 +43,12 @@ class Sample_v1:
         steps_output["log_intro"] = log_intro
         if _eval('.input.tier == "vip"', ctx):
             steps_output["decision"] = "log_vip"
+            steps_output["log_vip"] = {"next": "emit_vip", "path": "vip"}
+            workflow.logger.info({"event": {"msg": "VIP path taken", "tier": "vip"}})
+            steps_output["emit_vip"] = {"msg": "VIP path taken", "tier": "vip"}
         else:
             steps_output["decision"] = "log_default"
-        steps_output["log_default"] = {"next": "emit_regular", "path": "regular"}
-        steps_output["log_vip"] = {"next": "emit_vip", "path": "vip"}
-        workflow.logger.info({"event": {"msg": "Regular path taken", "tier": "regular"}})
-        steps_output["emit_regular"] = {"msg": "Regular path taken", "tier": "regular"}
-        workflow.logger.info({"event": {"msg": "VIP path taken", "tier": "vip"}})
-        steps_output["emit_vip"] = {"msg": "VIP path taken", "tier": "vip"}
+            steps_output["log_default"] = {"next": "emit_regular", "path": "regular"}
+            workflow.logger.info({"event": {"msg": "Regular path taken", "tier": "regular"}})
+            steps_output["emit_regular"] = {"msg": "Regular path taken", "tier": "regular"}
         return steps_output

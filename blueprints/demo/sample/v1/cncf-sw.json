@@ -74,55 +74,59 @@
           {
             "vip": {
               "when": ".input.tier == \"vip\"",
-              "then": "log_vip"
+              "then": "log_vip",
+              "do": [
+                {
+                  "log_vip": {
+                    "set": {
+                      "path": "vip",
+                      "next": "emit_vip"
+                    }
+                  }
+                },
+                {
+                  "emit_vip": {
+                    "emit": {
+                      "event": {
+                        "with": {
+                          "tier": "vip",
+                          "msg": "VIP path taken"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
             }
           },
           {
             "default": {
-              "then": "log_default"
+              "then": "log_default",
+              "do": [
+                {
+                  "log_default": {
+                    "set": {
+                      "path": "regular",
+                      "next": "emit_regular"
+                    }
+                  }
+                },
+                {
+                  "emit_regular": {
+                    "emit": {
+                      "event": {
+                        "with": {
+                          "tier": "regular",
+                          "msg": "Regular path taken"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
             }
           }
         ]
-      }
-    },
-    {
-      "log_default": {
-        "set": {
-          "path": "regular",
-          "next": "emit_regular"
-        }
-      }
-    },
-    {
-      "log_vip": {
-        "set": {
-          "path": "vip",
-          "next": "emit_vip"
-        }
-      }
-    },
-    {
-      "emit_regular": {
-        "emit": {
-          "event": {
-            "with": {
-              "tier": "regular",
-              "msg": "Regular path taken"
-            }
-          }
-        }
-      }
-    },
-    {
-      "emit_vip": {
-        "emit": {
-          "event": {
-            "with": {
-              "tier": "vip",
-              "msg": "VIP path taken"
-            }
-          }
-        }
       }
     }
   ],

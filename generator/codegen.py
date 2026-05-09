@@ -459,24 +459,33 @@ def _build_raise(name: str, task: RaiseTask) -> list[ast.stmt]:
 def _build_switch(
     name: str, task: SwitchTask, ctx_var: str, steps_var: str, workflow: Workflow
 ) -> list[ast.stmt]:
-    """Switch → if/elif/else."""
-    # Każdy case: { case_id: { when, then } }; default = brak `when`
-    branches: list[tuple[str | None, str]] = []
+    """Switch → if/elif/else.
+
+    F3.E.1: jeśli case ma `do` (mapper rebuild branches), emit branch body inline jako
+    body if/elif/else. Fallback do `steps_output[name]=then` (jump reference) tylko
+    gdy `do` brak (legacy / cross-branch jump).
+    """
+    branches: list[tuple[str | None, str, list]] = []
     for case_dict in task.switch:
         for case in case_dict.values():
-            branches.append((case.when, case.then))
+            branches.append((case.when, case.then, case.do or []))
 
     if not branches:
         return []
 
-    # Buduj if/elif/else
+    def _branch_body(then: str, do_seq: list) -> list[ast.stmt]:
+        """Body branch: tracking decision + branch tasks (jeśli mapper rebuilduje case.do)."""
+        body: list[ast.stmt] = ast.parse(f'{steps_var}[{name!r}] = {then!r}').body
+        for named in do_seq:
+            body.extend(_build_task_stmts(named, workflow, ctx_var, steps_var))
+        return body
+
     if_stmt: ast.If | None = None
     current: ast.If | None = None
-    for when, then in branches:
-        body = ast.parse(f'{steps_var}[{name!r}] = {then!r}').body
+    for when, then, do_seq in branches:
+        body = _branch_body(then, do_seq)
         if when is None:  # default
             if current is None:
-                # Brak żadnego if — emit goto bezwarunkowo
                 return body
             current.orelse = body
             break

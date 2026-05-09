@@ -73,11 +73,20 @@ def map_reactflow_to_cncfsw(rf: dict[str, Any]) -> Workflow:
     trigger_node_id = _find_trigger(nodes_by_id, incoming)
     trigger = _build_trigger(nodes_by_id[trigger_node_id]) if trigger_node_id else None
 
+    # F3.E.1: oblicz branch ownership — które nodes należą do którego switch case (BFS).
+    # Top-level pomija owned nodes; każdy case dostaje swoje branch body inline.
+    branch_owners = _compute_branch_ownership(nodes_by_id, outgoing)
+
     top_level_ids = [
         nid for nid, n in nodes_by_id.items()
-        if n.get("parentNode") is None and nid != trigger_node_id
+        if n.get("parentNode") is None
+        and nid != trigger_node_id
+        and nid not in branch_owners
     ]
-    do = _build_sequence(top_level_ids, nodes_by_id, edges, outgoing, parent_index, trigger_node_id)
+    do = _build_sequence(
+        top_level_ids, nodes_by_id, edges, outgoing, parent_index, trigger_node_id,
+        branch_owners=branch_owners,
+    )
 
     document = Document(
         dsl="1.0.0",
@@ -223,11 +232,75 @@ def _build_sequence(
     outgoing: dict[str, list[dict[str, Any]]],
     parent_index: dict[str | None, list[str]],
     trigger_node_id: str | None,
+    *,
+    branch_owners: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
     """Topological order top-level scope; branching nodes (switch/fork/listen) zachowują
     multi-handle semantykę (case_<id>, branch_<n>, event_<id>) wewnątrz Task."""
     ordered_ids = _topological_order(scope_ids, edges, trigger_node_id)
-    return [{nid: _build_task(nid, nodes_by_id, edges, outgoing, parent_index)} for nid in ordered_ids]
+    return [
+        {nid: _build_task(nid, nodes_by_id, edges, outgoing, parent_index, branch_owners or {})}
+        for nid in ordered_ids
+    ]
+
+
+def _compute_branch_ownership(
+    nodes_by_id: dict[str, dict[str, Any]],
+    outgoing: dict[str, list[dict[str, Any]]],
+) -> dict[str, str]:
+    """Dla każdego switch wykonaj BFS od targetu każdego case; nodes osiągalne wyłącznie
+    z jednego case → owned by that case (klucz: node_id, wartość: <switch_id>:<case_id>).
+
+    Nodes osiągalne z wielu cases (lub spoza switch) → traktowane jako shared,
+    pozostają w top-level scope. Decyzja F3.E.1 (naprawa switch flow).
+    """
+    # Per case: zbiór downstream nodes (BFS, nie wchodzi w inne switche)
+    case_reach: dict[str, set[str]] = {}
+    for switch_id, n in nodes_by_id.items():
+        if n.get("type") != "switch":
+            continue
+        for edge in outgoing.get(switch_id, []):
+            handle = edge.get("sourceHandle", "")
+            target = edge["target"]
+            label = f"{switch_id}:{handle or 'default'}"
+            case_reach[label] = _bfs_excluding_switches(target, outgoing, nodes_by_id)
+
+    # Każdy node przypisany do swojego owner-a tylko jeśli należy do dokładnie 1 case
+    ownership: dict[str, str] = {}
+    for label, reach in case_reach.items():
+        for nid in reach:
+            other_owners = [lbl for lbl, r in case_reach.items() if lbl != label and nid in r]
+            if other_owners:
+                # node shared → top-level, usuń z ownership
+                ownership.pop(nid, None)
+                continue
+            if nid in ownership and ownership[nid] != label:
+                ownership.pop(nid, None)
+                continue
+            ownership[nid] = label
+    return ownership
+
+
+def _bfs_excluding_switches(
+    start: str,
+    outgoing: dict[str, list[dict[str, Any]]],
+    nodes_by_id: dict[str, dict[str, Any]],
+) -> set[str]:
+    """BFS od `start`, NIE przekraczając kolejnych switch nodes (zatrzymanie na ich targetach)."""
+    visited: set[str] = {start}
+    queue = [start]
+    while queue:
+        cur = queue.pop(0)
+        for e in outgoing.get(cur, []):
+            t = e["target"]
+            if t in visited:
+                continue
+            visited.add(t)
+            # Zatrzymaj się na switch — jego branche należą do tego switch, nie tego (ważne dla nested)
+            if nodes_by_id.get(t, {}).get("type") == "switch":
+                continue
+            queue.append(t)
+    return visited
 
 
 def _topological_order(
@@ -290,7 +363,9 @@ def _build_task(
     edges: list[dict[str, Any]],
     outgoing: dict[str, list[dict[str, Any]]],
     parent_index: dict[str | None, list[str]],
+    branch_owners: dict[str, str] | None = None,
 ) -> Any:
+    branch_owners = branch_owners or {}
     node = nodes_by_id[nid]
     t = node["type"]
     data = node.get("data") or {}
@@ -313,7 +388,7 @@ def _build_task(
         return RunTask(run=data["run"], **common)
 
     if t == "switch":
-        return _build_switch(nid, data, outgoing)
+        return _build_switch(nid, data, outgoing, nodes_by_id, edges, parent_index, branch_owners)
     if t == "fork":
         return _build_fork(nid, data, outgoing, nodes_by_id, edges, parent_index)
     if t == "listen":
@@ -355,24 +430,58 @@ def _build_switch(
     nid: str,
     data: dict[str, Any],
     outgoing: dict[str, list[dict[str, Any]]],
+    nodes_by_id: dict[str, dict[str, Any]],
+    edges: list[dict[str, Any]],
+    parent_index: dict[str | None, list[str]],
+    branch_owners: dict[str, str],
 ) -> SwitchTask:
-    """Multi outgoing edges; sourceHandle = `case_<id>` lub `default`."""
+    """Multi outgoing edges; sourceHandle = `case_<id>` lub `default`.
+
+    F3.E.1: dla każdego case rebuilduje branch body z owned nodes (extension `do[]`),
+    żeby generator emitował if/elif/else z body inline (nie tylko jump-em).
+    """
     cases_by_handle = {e.get("sourceHandle", "out"): e["target"] for e in outgoing.get(nid, [])}
     cases: list[dict[str, Any]] = []
     declared = data.get("cases") or []
+
+    def _owned_branch_seq(handle: str, target: str) -> list[dict[str, Any]] | None:
+        """Zbuduj sekwencję NamedTask z nodes oznakowanych ownerem `<switch_id>:<handle>`."""
+        label = f"{nid}:{handle}"
+        owned = sorted(n for n, owner in branch_owners.items() if owner == label)
+        if not owned:
+            return None
+        # Topological order — używamy tych samych edges, ale ograniczamy do owned set
+        ordered = _topological_order(owned, edges, trigger_node_id=None)
+        # Zapewnij że target jest pierwszy
+        if target in ordered:
+            ordered = [target] + [n for n in ordered if n != target]
+        return [
+            {n: _build_task(n, nodes_by_id, edges, outgoing, parent_index, branch_owners)}
+            for n in ordered
+        ]
+
     for c in declared:
         cid = c["id"]
         when = c.get("when")
-        target = cases_by_handle.get(f"case_{cid}") or cases_by_handle.get(cid)
+        handle_key = f"case_{cid}"
+        target = cases_by_handle.get(handle_key) or cases_by_handle.get(cid)
         if not target:
             raise MapperError(f"switch {nid}: brak edge dla case {cid!r}.")
         case_obj: dict[str, Any] = {"then": target}
         if when is not None:
             case_obj["when"] = when
+        do_seq = _owned_branch_seq(handle_key, target)
+        if do_seq:
+            case_obj["do"] = do_seq
         cases.append({cid: case_obj})
 
     if "default" in cases_by_handle:
-        cases.append({"default": {"then": cases_by_handle["default"]}})
+        target = cases_by_handle["default"]
+        case_obj = {"then": target}
+        do_seq = _owned_branch_seq("default", target)
+        if do_seq:
+            case_obj["do"] = do_seq
+        cases.append({"default": case_obj})
 
     return SwitchTask(switch=cases)
 

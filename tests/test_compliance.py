@@ -12,7 +12,6 @@ Uruchom: `uv run pytest tests/test_compliance.py -v`
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
@@ -46,8 +45,18 @@ def test_decision_02_structural_primitives_only() -> None:
 def test_decision_03_two_layer_model() -> None:
     """#3: Dwuwarstwowy model — 12 task types (closed) + Tools/Agents (open)."""
     from ir import (  # noqa: F401
-        CallTask, DoTask, EmitTask, ForkTask, ForTask, ListenTask,
-        RaiseTask, RunTask, SetTask, SwitchTask, TryTask, WaitTask,
+        CallTask,
+        DoTask,
+        EmitTask,
+        ForkTask,
+        ForTask,
+        ListenTask,
+        RaiseTask,
+        RunTask,
+        SetTask,
+        SwitchTask,
+        TryTask,
+        WaitTask,
     )
     closed_set = {CallTask, DoTask, EmitTask, ForkTask, ForTask, ListenTask,
                   RaiseTask, RunTask, SetTask, SwitchTask, TryTask, WaitTask}
@@ -72,6 +81,7 @@ def test_decision_04_tenant_isolation_layout() -> None:
 
     # Generator codegen wymusza tenant_id w API
     import inspect
+
     from generator import codegen
     sig = inspect.signature(codegen.generate)
     assert "tenant_id" in sig.parameters, "generate() musi przyjmować tenant_id (#4)"
@@ -102,17 +112,27 @@ def test_decision_05_cncfsw_pydantic_models() -> None:
 def test_decision_06_all_12_task_types_supported() -> None:
     """#6: 12 task types CNCF SW 1.0 wszystkie w MVP (Pydantic + mapper + generator)."""
     from ir import (
-        CallTask, DoTask, EmitTask, ForkTask, ForTask, ListenTask,
-        RaiseTask, RunTask, SetTask, SwitchTask, TryTask, WaitTask,
+        CallTask,
+        DoTask,
+        EmitTask,
+        ForkTask,
+        ForTask,
+        ListenTask,
+        RaiseTask,
+        RunTask,
+        SetTask,
+        SwitchTask,
+        TryTask,
+        WaitTask,
     )
     types = [CallTask, DoTask, EmitTask, ForkTask, ForTask, ListenTask,
              RaiseTask, RunTask, SetTask, SwitchTask, TryTask, WaitTask]
     assert len({t.__name__ for t in types}) == 12
 
     # Mapper musi obsługiwać wszystkie 12
-    from mapper.reactflow_to_cncfsw import _build_task  # noqa: F401
     # Generator musi emitować wszystkie 12 (bez NotImplementedError placeholder)
     from generator.codegen import _build_task_stmts  # noqa: F401
+    from mapper.reactflow_to_cncfsw import _build_task  # noqa: F401
 
 
 def test_decision_07_tools_agents_as_functions() -> None:
@@ -178,6 +198,7 @@ def test_decision_11_jq_compiled_from_ui() -> None:
 def test_decision_12_auto_export_steps_output() -> None:
     """#12: Generator emituje `steps_output["<id>"] = ...` po każdym task."""
     from datetime import UTC, datetime
+
     from generator import generate
     from ir import Document, SetTask, Use, Workflow
     wf = Workflow(document=Document(dsl="1.0.0", namespace="t", name="x", version="1"),
@@ -196,6 +217,7 @@ def test_decision_13_pydantic_io_schemas() -> None:
 def test_decision_14_generated_py_layout() -> None:
     """#14: `generated/<tenant>/workflows/<snake>__v<n>.py` + header + black."""
     from datetime import UTC, datetime
+
     from generator import generate
     from ir import Document, SetTask, Use, Workflow
     wf = Workflow(document=Document(dsl="1.0.0", namespace="demo", name="hi", version="1"),
@@ -211,8 +233,8 @@ def test_decision_14_generated_py_layout() -> None:
 
 def test_decision_15_ast_generator_jq_libjq() -> None:
     """#15: Generator używa Python `ast` module (nie string templating); `_eval()` z compiled JQ cache."""
-    import ast
     import inspect
+
     from generator import codegen
     src = inspect.getsource(codegen)
     assert "import ast" in src or "from ast" in src
@@ -221,9 +243,10 @@ def test_decision_15_ast_generator_jq_libjq() -> None:
 
 def test_decision_16_validator_six_categories() -> None:
     """#16: Walidator emituje codes w schemacie <A-F><NNN>; error blokuje publish."""
-    from validator import Severity, validate  # noqa: F401
     # Sprawdzić że walidator istnieje i ma wymagane kategorie
     import inspect
+
+    from validator import Severity, validate  # noqa: F401
     from validator import validator as v
     src = inspect.getsource(v)
     for prefix in ("A0", "B0", "C0", "D0", "E0", "F0"):
@@ -279,7 +302,7 @@ def test_decision_20_profile_based_policies() -> None:
 
 def test_decision_21_retry_unsupported_fields_blocked() -> None:
     """#21: Walidator blokuje retry pola bez Temporal mapping (jitter, when, exceptWhen, limit.duration, limit.attempt.duration)."""
-    from ir import RetryJitter, RetryLimit, RetryLimitAttempt, RetryPolicy, Use, Workflow, Document
+    from ir import Document, RetryJitter, RetryPolicy, Use, Workflow
     from validator import validate
     use = Use(retries={"bad": RetryPolicy(jitter=RetryJitter(**{"from": "PT1S", "to": "PT2S"}))})
     wf = Workflow(document=Document(dsl="1.0.0", namespace="t", name="x", version="1"),
@@ -324,6 +347,7 @@ def test_decision_25_multi_catch_compilation() -> None:
 def test_decision_26_fail_fast_uncaught() -> None:
     """#26: Generator nie emituje workflow-level catch ani retry policy."""
     from datetime import UTC, datetime
+
     from generator import generate
     from ir import Document, SetTask, Use, Workflow
     wf = Workflow(document=Document(dsl="1.0.0", namespace="t", name="x", version="1"),
@@ -356,8 +380,9 @@ def test_decision_28_cascade_defaults_resolution() -> None:
 
 def test_decision_29_no_native_saga() -> None:
     """#29: Saga = pattern user-implemented; brak native construct w IR."""
-    from ir import tasks as t_mod
     import inspect
+
+    from ir import tasks as t_mod
     src = inspect.getsource(t_mod)
     assert "SagaTask" not in src  # nie ma natywnego saga task type
     # Compensation jest user-implemented w try.catch.do
@@ -367,3 +392,42 @@ def test_decision_30_compiled_only_no_interpreter() -> None:
     """#30: Brak interpreter modułu. Każdy Blueprint ma `.py` w generated/<tenant>/workflows/."""
     assert not _exists("interpreter/")
     assert not _exists("runtime_interpreter.py")
+
+
+# ============== Dodatkowe compliance: F3.E.1 (switch flow) =====================
+
+
+def test_switch_branches_no_dead_paths_via_branch_ownership() -> None:
+    """F3.E.1: Mapper rebuilduje branches do `case.do`; generator emituje branch body inline.
+
+    Sprawdza że dla sample workflow (`blueprints/demo/sample/v1/`) generator emituje
+    if/else z disjoint branch bodies — nie wszystkie nodes sekwencyjnie.
+    """
+    py_path = REPO_ROOT / "generated/demo/workflows/sample__v1.py"
+    if not py_path.exists():
+        pytest.skip("Sample workflow nie wygenerowany — uruchom regenerate_all")
+    src = py_path.read_text("utf-8")
+    # vip body wewnątrz if; default body wewnątrz else
+    if_idx = src.find("if _eval(")
+    else_idx = src.find("else:", if_idx)
+    return_idx = src.find("return steps_output", else_idx)
+    assert if_idx > 0 and else_idx > if_idx and return_idx > else_idx
+    if_body = src[if_idx:else_idx]
+    else_body = src[else_idx:return_idx]
+    # vip nodes (log_vip, emit_vip) w if body, NIE w else
+    assert "log_vip" in if_body and "emit_vip" in if_body
+    assert "log_vip" not in else_body and "emit_vip" not in else_body
+    # default nodes (log_default, emit_regular) w else body, NIE w if
+    assert "log_default" in else_body and "emit_regular" in else_body
+    assert "log_default" not in if_body and "emit_regular" not in if_body
+
+
+def test_switch_case_supports_inline_do_body_in_pydantic() -> None:
+    """F3.E.1: `_SwitchCase` ma pole `do: list[NamedTask] | None` (extension Weaver)."""
+    from ir import SwitchTask
+    sw = SwitchTask(switch=[
+        {"vip": {"when": ".x", "then": "n1", "do": [{"n1": {"set": {"k": "v"}}}]}},
+    ])
+    case = sw.switch[0]["vip"]
+    assert case.do is not None
+    assert len(case.do) == 1

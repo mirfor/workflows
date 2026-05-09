@@ -9,9 +9,9 @@
         "1": {
           "file_path": "generated/demo/workflows/sample__v1.py",
           "class_name": "Sample_v1",
-          "source_hash": "b85a8d6da61d6f03a5f5d8175b4313f40f0905d94d347c3ed60a2b2aec28b99f",
+          "source_hash": "b748ac96fca8765bd9825224aecdaeb9f245947c1888848c19f9617af041f469",
           "build_id": null,
-          "generated_at": "2026-05-09T14:53:59+00:00"
+          "generated_at": "2026-05-09T15:00:14+00:00"
         }
       }
     }

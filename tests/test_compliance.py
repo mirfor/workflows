@@ -222,7 +222,6 @@ def test_decision_17_versioning_lifecycle_manifest() -> None:
     # (placeholder — pełny test po implementacji)
 
 
-@pytest.mark.xfail(reason="#18 — activity registry", strict=False)
 def test_decision_18_activity_registry_layout() -> None:
     """#18: ALL_ACTIVITIES discovery + call_specialized_agent dispatcher."""
     from activities import ALL_ACTIVITIES, call_specialized_agent
@@ -328,7 +327,6 @@ def test_decision_27_workflow_run_timeout_only() -> None:
     assert "workflow_task_timeout" not in fields
 
 
-@pytest.mark.xfail(reason="#28 — cascade defaults", strict=False)
 def test_decision_28_cascade_defaults_resolution() -> None:
     """#28: cascade_resolve(tenant, client_org, blueprint) → final values; brak hardcoded."""
     from scripts.build_manifest import CascadeDefaults, cascade_resolve

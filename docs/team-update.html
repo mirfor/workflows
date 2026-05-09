@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Weaver — backend silnik Agentów: kierunek i status</title>
+<style>
+  body { max-width: 880px; margin: 2rem auto; padding: 0 1.5rem;
+         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+         line-height: 1.55; color: #1a1a1a; }
+  h1 { font-size: 1.9rem; border-bottom: 2px solid #333; padding-bottom: 0.4rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.35rem; margin-top: 2.2rem; border-bottom: 1px solid #ddd; padding-bottom: 0.2rem; }
+  h3 { font-size: 1.05rem; margin-top: 1.4rem; color: #333; }
+  p { margin: 0.6rem 0; }
+  .lead { color: #555; font-size: 1.05rem; margin-top: 0.2rem; margin-bottom: 1.5rem; }
+  ul, ol { padding-left: 1.4rem; }
+  li { margin: 0.3rem 0; }
+  table { border-collapse: collapse; width: 100%; margin: 0.8rem 0 1.2rem; }
+  th, td { text-align: left; padding: 0.45rem 0.6rem; border-bottom: 1px solid #eee; vertical-align: top; }
+  th { background: #f6f6f6; font-weight: 600; }
+  code { background: #f4f4f4; padding: 0.05rem 0.35rem; border-radius: 3px;
+         font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: 0.92em; }
+  .pill { display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px;
+          font-size: 0.78rem; font-weight: 600; }
+  .pill-ok { background: #e7f5ea; color: #107c10; }
+  .pill-open { background: #fff1e0; color: #c95a00; }
+  .box { background: #f9f9fb; border-left: 3px solid #555; padding: 0.8rem 1rem;
+         margin: 1rem 0; border-radius: 4px; }
+  .small { font-size: 0.88rem; color: #666; }
+  a { color: #0060c0; }
+  .step { background: #fcfcfd; border: 1px solid #e5e5ea; border-radius: 6px;
+          padding: 0.8rem 1rem; margin: 0.6rem 0; }
+  .step-num { display: inline-block; width: 1.6rem; height: 1.6rem; line-height: 1.6rem;
+              text-align: center; background: #333; color: white; border-radius: 50%;
+              font-weight: 600; font-size: 0.85rem; margin-right: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1>Weaver — backend silnik Agentów: kierunek i status</h1>
+<p class="lead">Krótkie podsumowanie tego, gdzie jesteśmy z backendowym silnikiem dla Weaver Agentów. Dla zespołu — żebyśmy zgadzali się co budujemy, dlaczego tak, co już działa i co dalej. Zgodne z <a href="../../weaver-root/docs/content/architecture/vocabulary/index.md">Weaver vocabulary</a>.</p>
+
+<h2>Po co to robimy</h2>
+
+<p><strong>Weaver to Business Agents OS</strong> — klient kupuje i operuje <strong>Agentami</strong>, którzy wykonują biznesowe zadania end-to-end (zatwierdzanie wydatków, kwartalne rozliczenia, onboarding, etc.). Agent łączy AI reasoning, użycie Tools i ludzkie decyzje; uruchamia się niezawodnie pod naszą orkiestracją. Świadomie odrzucamy słownik BPM ("process", "workflow", "case") — patrz vocabulary.</p>
+
+<p>Backendowy silnik (to repo) bierze <strong>Agent Blueprint</strong> (graf zaprojektowany w Agent Studio) i sprawia, że można go uruchamiać jako <strong>Engagement</strong> w Temporalu — niezawodnie, deterministycznie, audytowalnie.</p>
+
+<h3>Dlaczego nie własny DSL + interpreter</h3>
+
+<p>W fazie projektowej rozważaliśmy podejście <em>DSL + interpreter</em>: własny język opisu Agenta w JSON-ie + uniwersalny worker Pythona, który by go parsował i wykonywał krok po kroku. <strong>Odrzucone</strong> z tych powodów:</p>
+
+<ul>
+  <li><strong>Interpreter dubluje Temporal SDK</strong> — Temporal już daje deterministyczny model wykonania z replay/versioning; własna warstwa interpretacji ponad to komplikuje debug i tracking</li>
+  <li><strong>DSL = ciągły rozwój własnego języka</strong> — każda nowa konstrukcja wymaga rozszerzenia parsera + walidatora + interpretera + dokumentacji "co znaczy każdy tag"</li>
+  <li><strong>Zerowa type safety</strong> — JSON jest stringly-typed; błędy wyłapuje się dopiero w runtime</li>
+  <li><strong>Replay / debug nie działa po stronie domeny</strong> — Python stack trace pokazuje interpreter, nie kod biznesowego Agenta</li>
+  <li><strong>Standard branżowy istnieje</strong> — patrz słowniczek niżej (<em>CNCF Serverless Workflow 1.0</em>)</li>
+</ul>
+
+<p>Wybraliśmy: <strong>codegen Pythona dla Temporala</strong>. Każdy <em>Agent Blueprint × wersja</em> produkuje fizyczny plik <code>.py</code> — taki, jakby ktoś go napisał ręcznie z dekoratorami Temporala.</p>
+
+<div class="box">
+<p class="small"><strong>Uwaga o "migracji".</strong> W Weaverze trwa równoległa migracja <strong>terminologii</strong> w trzech frontendowych repos: BPM-owe nazwy ("Process", "Case", "Gateway") są wymieniane na słownik Agent ("Agent", "Engagement", "Decision Point") — patrz <code>weaver-root/docs/content/architecture/vocabulary/migration.md</code>. <strong>Nie dotyczy to tego repo</strong> — backend jest greenfield, nie ma istniejących Agentów do przenoszenia.</p>
+</div>
+
+<h2>Słowniczek (Weaver vocabulary)</h2>
+
+<p>Te terminy będą się powtarzać. Pełna definicja: <code>weaver-root/docs/content/architecture/vocabulary/index.md</code>.</p>
+
+<table>
+<tr><th>Termin</th><th>Co to znaczy</th></tr>
+<tr><td><strong>Agent</strong></td><td>Capability klienta — end-to-end obsługuje biznesowe zadanie. Top-level entity. Co klient kupuje.</td></tr>
+<tr><td><strong>Agent Blueprint</strong></td><td>Design Agenta: graf Skills + Tools + decyzji + transitions. Wersjonowany (v1, v2, v3) — frozen na Publish.</td></tr>
+<tr><td><strong>Engagement</strong> (lub <strong>Run</strong>)</td><td>Pojedyncze wykonanie Agenta. "Engagement" w kontekście biznesowym, "Run" w operacyjnym/inżynierskim.</td></tr>
+<tr><td><strong>Core Skills</strong></td><td>Built-in klocki Weavera: <em>AI Skill</em>, <em>Approval</em> / <em>Review</em> / <em>Decision</em>, <em>Decision Point</em> (gateway), <em>Parallel</em>, <em>Timer</em>, <em>Data Transform</em>, <em>Delegate to Agent</em>, <em>Start</em> / <em>End</em>. Generyczne — każdy Agent może ich użyć.</td></tr>
+<tr><td><strong>Tools</strong></td><td>Pre-built integracje z zewnętrznymi systemami (Recall.ai, Notifications, HTTP Request). Działają in-process w runtime.</td></tr>
+<tr><td><strong>Specialized Agents</strong></td><td>Standalone serwisy (Posting Recommendation Agent, Data Transform Agent) z własnym backendem, własną AI w runtime, podpinają się przez Extension Contract.</td></tr>
+<tr><td><strong>Tenant</strong></td><td>Klient platformy Weaver (np. firma usługowa). Każdy Tenant ma fizycznie odizolowaną przestrzeń (osobny Temporal namespace).</td></tr>
+<tr><td><strong>Client Org</strong></td><td>Klient Tenanta (czyli "klient klienta"). Logiczna izolacja w obrębie Tenanta.</td></tr>
+<tr><td><strong>Temporal</strong></td><td>Silnik durable workflow, którego używamy do wykonywania Agentów. Gwarantuje, że Engagement przeżyje restart, awarię, deploy.</td></tr>
+<tr><td><strong>CNCF Serverless Workflow 1.0</strong></td><td>Otwarty standard opisu grafów wykonania w formacie JSON, opracowany w fundacji <strong>Cloud Native Computing Foundation</strong> (CNCF — ta sama, która utrzymuje Kubernetes). Definiuje 12 typów klocków (call, switch, fork, try, wait, listen, emit, raise, run, set, do, for). Używamy go jako kanonicznej reprezentacji Agent Blueprintu między Designerem a generatorem Pythona — żeby <strong>nie wymyślać własnego formatu</strong>.</td></tr>
+</table>
+
+<h2>Jak rysunek z Designera staje się Pythonem</h2>
+
+<p>Konkretna mechanika pipeline'u — najważniejsza techniczna treść tego dokumentu.</p>
+
+<div class="step">
+<p><span class="step-num">1</span><strong>Agent Studio (Designer) → React Flow JSON</strong></p>
+<p>Użytkownik rysuje Agent Blueprint w przeglądarce: Core Skills, Tools, Specialized Agents jako node'y na canvas; połączenia między nimi; konfiguracja per node (np. który Tool wywołać, jakie warunki, jakie inputy/outputy). Po kliknięciu <em>Save Draft</em> design serializuje się do React Flow JSON: <code>{ nodes: [...], edges: [...] }</code> z metadanymi pozycji i danych formularzy.</p>
+</div>
+
+<div class="step">
+<p><span class="step-num">2</span><strong>Mapper: React Flow JSON → CNCF Serverless Workflow IR JSON</strong></p>
+<p>Moduł <code>mapper/reactflow_to_cncfsw.py</code> dokonuje deterministycznej, jednokierunkowej konwersji. Każdy typ node'a w React Flow mapuje się na konkretny task type ze standardu CNCF SW 1.0. Wykrywa trigger (node bez incoming edges), oblicza branch ownership (które node'y należą do której gałęzi switch / fork / try → catch), buduje topologiczną sekwencję. Wynik to ustrukturyzowany IR JSON — kanoniczna semantyka Agent Blueprintu.</p>
+</div>
+
+<div class="step">
+<p><span class="step-num">3</span><strong>Walidator IR — 6 kategorii reguł</strong></p>
+<p>Moduł <code>validator/validator.py</code> sprawdza poprawność IR przed generacją: (A) struktura grafu (duplikaty IDs, container body non-empty), (B) handles/edges (switch.default, declared handles), (C) registry funkcji (czy wywoływane Tools/Specialized Agents istnieją w manifeście), (D) schemy I/O, (E) polityki Temporala (retry mapping, czy nie używa pól bez Temporal mapping jak <code>jitter</code>, <code>when</code>, <code>limit.duration</code>), (F) zgodność ze spec CNCF SW. Severity: <em>error</em> blokuje publish; <em>warning</em> tylko notyfikuje.</p>
+</div>
+
+<div class="step">
+<p><span class="step-num">4</span><strong>Generator: IR → Python AST → <code>.py</code></strong></p>
+<p>Moduł <code>generator/codegen.py</code> bierze IR i buduje plik <code>.py</code> przez <strong>Python <code>ast</code> module</strong> (nie string templating — branżowy standard, type-safe, formatter-friendly). Mapping per task type:</p>
+<ul>
+  <li><code>call</code> → <code>await workflow.execute_activity(...)</code> z timeout + retry policy</li>
+  <li><code>switch</code> → <code>if/elif/else</code> z body inline (sprawdzone: tylko właściwa gałąź się wykonuje)</li>
+  <li><code>for</code> → <code>for &lt;each&gt; in _eval(&lt;in&gt;, ctx):</code></li>
+  <li><code>fork</code> → <code>asyncio.gather(*tasks)</code> lub <code>asyncio.wait(FIRST_COMPLETED)</code></li>
+  <li><code>try/catch</code> → <code>try: ... except ApplicationError as e: ...</code></li>
+  <li><code>wait</code> → <code>await workflow.sleep(timedelta(...))</code></li>
+  <li>itd. dla wszystkich 12 task types</li>
+</ul>
+<p>Warunki w <code>switch</code> i <code>if</code> ewaluują się przez wbudowany helper <code>_eval()</code> z compiled JQ programs cache (JQ jako standard expression language). Po zbudowaniu AST: <code>ast.unparse()</code> → string Pythona → <code>black.format_str()</code> dla finalnego stylu.</p>
+</div>
+
+<div class="step">
+<p><span class="step-num">5</span><strong>Plik <code>.py</code> + manifest per Tenant</strong></p>
+<p>Wynik to <code>generated/&lt;tenant&gt;/workflows/&lt;snake_id&gt;__v&lt;n&gt;.py</code> z headerem:</p>
+<pre style="background: #f4f4f4; padding: 0.6rem; border-radius: 4px; font-size: 0.85em; margin: 0.4rem 0;"># Generated from Blueprint &lt;tenant&gt;/&lt;id&gt; v&lt;n&gt; at &lt;timestamp&gt;
+# Source hash: &lt;sha256-of-IR&gt;
+# DO NOT EDIT — regeneruj przez generator
+</pre>
+<p>Source hash to SHA256 z deterministycznie znormalizowanego IR — gwarantuje idempotencję regeneracji (ten sam IR → identyczny <code>.py</code>). Plik dodawany do <code>generated/&lt;tenant&gt;/manifest.json</code> z <code>active_version</code>, <code>deprecated_versions</code>, <code>build_id_lineage</code>.</p>
+</div>
+
+<div class="step">
+<p><span class="step-num">6</span><strong>Worker per Tenant importuje wygenerowane pliki</strong></p>
+<p>Worker uruchamiany z <code>uv run python worker.py --tenant &lt;id&gt;</code>. Czyta <code>generated/&lt;tenant&gt;/manifest.json</code>, importuje <strong>tylko</strong> active wersje workflowów tego Tenanta, rejestruje activities, łączy się z Temporalem (namespace = tenant_id, task queue = <code>weaver-&lt;tenant&gt;</code>). Klient startuje Engagement przez <code>start_workflow</code> — Temporal kieruje go do właściwego workera.</p>
+</div>
+
+<h3>Co dzieje się po zmianie Agent Blueprintu (deploy)</h3>
+<p>Nowa wersja Blueprintu = nowy plik <code>.py</code> + git commit + CI build z nowym <strong>Worker Versioning Build ID</strong> + rolling deploy. Stare Engagementy kończą się na poprzednim Build ID, nowe trafiają na nowy. Zero przerwy. Pełen audyt — każda wersja w git history forever.</p>
+
+<h2>Co już działa</h2>
+
+<div class="box">
+<p><strong>Cały proces działa od początku do końca</strong> — sprawdzone na żywym Temporal Server z dwoma Tenantami. Nie tylko unit testy: realne Engagementy startują, wykonują się, kończą z poprawnym wynikiem.</p>
+</div>
+
+<h3>1. Pełna ścieżka E2E</h3>
+<p>Agent Blueprint w <code>blueprints/&lt;tenant&gt;/&lt;id&gt;/v&lt;n&gt;/reactflow.json</code> → mapper → IR JSON (<code>cncf-sw.json</code>) → walidator → generator → <code>.py</code> → manifest → Worker → Temporal → wykonanie. Każda forma Blueprintu przechowywana w git po publikacji (3 formy obowiązkowe — patrz ADR-002).</p>
+
+<h3>2. Każdy Tenant ma odizolowaną przestrzeń</h3>
+<ul>
+  <li>Pliki: <code>blueprints/&lt;tenant&gt;/&lt;agent_id&gt;/v&lt;n&gt;/</code> i <code>generated/&lt;tenant&gt;/...</code></li>
+  <li>Każdy Tenant: własny Temporal namespace, własna kolejka <code>weaver-&lt;tenant&gt;</code>, własny Worker</li>
+  <li>Manifesty Tenantów <strong>disjoint</strong> w blueprint_ids — Worker jednego Tenanta nie widzi Agentów innego</li>
+  <li>E2E zweryfikowane (test F5.6): start <code>hello</code> w namespace <code>demo</code> nie znajduje workera (Agent <code>hello</code> istnieje tylko u <code>acme</code>)</li>
+</ul>
+
+<h3>3. Wszystkie 12 task types ze standardu CNCF SW działa</h3>
+<p>Każdy emituje realny Python (nie placeholder/szkielet):</p>
+<table>
+<tr><th>Task type</th><th>Co robi w wygenerowanym kodzie</th></tr>
+<tr><td><code>call</code></td><td>Wywołanie Tool albo Specialized Agenta przez <code>execute_activity</code></td></tr>
+<tr><td><code>switch</code></td><td>if/elif/else z inline body — tylko właściwa gałąź wykonuje się</td></tr>
+<tr><td><code>for</code></td><td>Pętla po kolekcji</td></tr>
+<tr><td><code>fork</code></td><td>Równoległe wykonanie gałęzi (gather lub wait-first)</td></tr>
+<tr><td><code>try/raise</code></td><td>Obsługa błędów z catch i recovery</td></tr>
+<tr><td><code>wait</code></td><td>Pauza durable (przeżywa restart workera)</td></tr>
+<tr><td><code>listen/emit</code></td><td>Subskrypcja / publikacja eventów</td></tr>
+<tr><td><code>run</code></td><td>Child workflow / external process</td></tr>
+<tr><td><code>do/set</code></td><td>Sekwencja / przypisanie do kontekstu</td></tr>
+</table>
+
+<h3>4. Compliance gate — nie pozwala "olewać" decyzji</h3>
+<p>30 decyzji projektowych z fazy designerskiej (<code>docs/SESSION_STATE.md</code>) ma swoje testy w <code>tests/test_compliance.py</code>. Mapowanie w <code>docs/COMPLIANCE.md</code>. CI blokuje merge, gdy compliance test fail. PR review pierwsze pytanie: "który compliance test się zmienił?". <strong>Aktualnie 34/34 testy passing.</strong></p>
+
+<h2>Status MVP</h2>
+
+<table>
+<tr><th>Obszar</th><th>Status</th><th>Komentarz</th></tr>
+<tr><td>Pipeline backendowy (mapper, walidator, generator, manifest)</td><td><span class="pill pill-ok">Gotowe</span></td><td>Multi-tenant aware</td></tr>
+<tr><td>Worker + activity registry</td><td><span class="pill pill-ok">Gotowe</span></td><td>Per Tenant; sample tools <code>log_message</code>, <code>http_get</code></td></tr>
+<tr><td>5 sample Blueprintów × E2E na Temporalu</td><td><span class="pill pill-ok">Gotowe</span></td><td>Pokrycie task types + cross-tenant isolation</td></tr>
+<tr><td>Dokumentacja architektoniczna</td><td><span class="pill pill-ok">Gotowe</span></td><td>11 dokumentów + 6 ADR</td></tr>
+<tr><td>CI</td><td><span class="pill pill-ok">Gotowe</span></td><td>lint, type, test, codegen idempotency, compliance gate</td></tr>
+<tr><td>DEPLOYMENT.md</td><td><span class="pill pill-open">Czeka na decyzję</span></td><td>Cloud Run / GKE / self-hosted? Temporal Cloud czy własny?</td></tr>
+<tr><td>USER_GUIDE.md (dla Designera Agentów)</td><td><span class="pill pill-open">Czeka na decyzję</span></td><td>Audience: developer / analityk / nietechniczny user?</td></tr>
+<tr><td>USER_ERROR_CATALOG.md</td><td><span class="pill pill-open">Czeka na decyzję</span></td><td>Język UI: PL/EN/oba?</td></tr>
+<tr><td>LLM-driven generation Agent Blueprintów</td><td><span class="pill pill-open">Post-MVP</span></td><td>W MVP warunki kompilowane przez UI builder do JQ; LLM-NL odłożone</td></tr>
+</table>
+
+<h2>O czym warto pogadać na meetingu</h2>
+
+<h3>Decyzje produktowe / operacyjne (odłożone w fazie projektowej)</h3>
+<ul>
+  <li><strong>Audience Agent Studio</strong> — kto realnie projektuje Agenty? Developer / analityk / nietechniczny user. Wpływa na ergonomię (raw JQ vs structural builder), ile Core Skills jest dostępnych w palecie.</li>
+  <li><strong>Target deployment</strong> — Cloud Run, GKE, self-hosted? Temporal Cloud czy własny? Wpływa na Worker partitioning, secrets, observability.</li>
+  <li><strong>Skala docelowa</strong> — ile Agent Blueprintów per Tenant (setki vs tysiące) zmienia strategię ładowania workerów.</li>
+  <li><strong>Implementacja Tools</strong> — kto pisze poszczególne integracje? Mamy szablon <code>activities/tools/&lt;integration&gt;.py</code> z manifestem; potrzebujemy ownerów per integracja.</li>
+  <li><strong>RBAC / multi-role UI</strong> — Tenant admin / Client Org operator / Designer / Reviewer. Nie było przedmiotem sesji projektowej, wymaga osobnej.</li>
+</ul>
+
+<h3>Architektoniczne — chciałbym potwierdzenie</h3>
+<ul>
+  <li>Trzymamy się <strong>CNCF Serverless Workflow 1.0</strong> jako kanonicznego IR JSON pomiędzy Designerem a generatorem (zamiast własnego DSL — porzucone).</li>
+  <li>Generujemy <strong>fizyczny <code>.py</code> per Agent Blueprint × wersja</strong> (nie interpretujemy IR w runtime).</li>
+  <li><strong>Worker Versioning Build ID</strong> Temporala dla wersjonowania (nie <code>workflow.patched()</code>).</li>
+  <li>Per-Tenant <strong>fizyczna izolacja</strong> (osobny Temporal namespace + DB), per Client Org logiczna (row-level + Search Attribute).</li>
+</ul>
+
+<h2>Demo flow (5 min)</h2>
+<ol>
+  <li>30 decyzji w <code>SESSION_STATE.md</code>, 6 ADR, mapowanie na compliance testy</li>
+  <li><code>uv run pytest tests/test_compliance.py -v</code> → 34 passing</li>
+  <li>Bulk regeneracja: <code>uv run python -m scripts.regenerate_all</code> → 5 Blueprintów × 2 Tenanty</li>
+  <li>Pokażę wygenerowany <code>.py</code> z headerem <em>DO NOT EDIT</em></li>
+  <li><code>temporal server start-dev</code>, dwóch workerów (per Tenant), uruchomię Engagement z Pythona</li>
+  <li>Cross-tenant isolation: <code>hello</code> nie wykonuje się w <code>demo</code> namespace</li>
+</ol>
+
+<h2>Linki</h2>
+<ul>
+  <li>Repo (private): <a href="https://github.com/mirfor/workflows">github.com/mirfor/workflows</a></li>
+  <li>30 decyzji projektowych: <code>docs/SESSION_STATE.md</code></li>
+  <li>6 ADR: <code>docs/adr/</code></li>
+  <li>Compliance mapping: <code>docs/COMPLIANCE.md</code></li>
+  <li>Operacyjny guide multi-tenant: <code>docs/MULTI_TENANT.md</code></li>
+  <li>Plan implementacji: <code>docs/IMPLEMENTATION_PLAN_V2.md</code></li>
+  <li>Weaver vocabulary: <code>weaver-root/docs/content/architecture/vocabulary/index.md</code></li>
+</ul>
+
+<p class="small">Wygenerowane po sesji projektowej i pierwszym implementacyjnym sprincie. Dokument zgodny z Weaver Agent vocabulary.</p>
+
+</body>
+</html>

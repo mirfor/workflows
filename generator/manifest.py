@@ -1,9 +1,10 @@
-"""Update `generated/manifest.json` po publikacji nowej wersji Blueprintu.
+"""Update manifestu per Tenant `generated/<tenant_id>/manifest.json` (decyzje #4, #14, #17).
 
-Decyzje #14, #17. Format:
+Format:
 ```
 {
   "schema_version": "1.0",
+  "tenant_id": "<tenant>",
   "blueprints": {
     "<id>": {
       "active_version": "<n>",
@@ -30,6 +31,11 @@ from generator.codegen import GeneratedWorkflow
 MANIFEST_VERSION = "1.0"
 
 
+def manifest_path_for(repo_root: Path, tenant_id: str) -> Path:
+    """Kanoniczna ścieżka manifestu per Tenant (decyzja #4)."""
+    return repo_root / "generated" / tenant_id / "manifest.json"
+
+
 def update_manifest(
     manifest_path: Path,
     gen: GeneratedWorkflow,
@@ -38,8 +44,19 @@ def update_manifest(
     generated_at: str | None = None,
     activate: bool = True,
 ) -> dict[str, Any]:
-    """Wczytaj `manifest_path`, dodaj wpis, atomowo zapisz. Zwraca zaktualizowany manifest."""
-    manifest = _read(manifest_path)
+    """Wczytaj `manifest_path`, dodaj wpis, atomowo zapisz. Zwraca zaktualizowany manifest.
+
+    `manifest_path` MUSI być per-Tenant — `generated/<tenant_id>/manifest.json` (decyzja #4).
+    Walidator sprawdza spójność `gen.tenant_id` z `manifest_path`.
+    """
+    expected_segment = f"generated/{gen.tenant_id}/manifest.json"
+    if not str(manifest_path).endswith(expected_segment):
+        raise ValueError(
+            f"Manifest path {manifest_path} nie jest per-Tenant zgodny z "
+            f"`gen.tenant_id={gen.tenant_id}` (oczekiwane: ...{expected_segment})."
+        )
+
+    manifest = _read(manifest_path, tenant_id=gen.tenant_id)
 
     bp = manifest["blueprints"].setdefault(
         gen.blueprint_id,
@@ -47,7 +64,7 @@ def update_manifest(
     )
 
     bp["versions"][gen.version] = {
-        "file_path": f"generated/workflows/{gen.file_name}",
+        "file_path": gen.relative_path,
         "class_name": gen.class_name,
         "source_hash": gen.source_hash,
         "build_id": build_id,
@@ -64,13 +81,18 @@ def update_manifest(
     return manifest
 
 
-def _read(path: Path) -> dict[str, Any]:
+def _read(path: Path, *, tenant_id: str) -> dict[str, Any]:
     if not path.exists():
-        return {"schema_version": MANIFEST_VERSION, "blueprints": {}}
+        return {"schema_version": MANIFEST_VERSION, "tenant_id": tenant_id, "blueprints": {}}
     with path.open(encoding="utf-8") as f:
         m = json.load(f)
     m.setdefault("schema_version", MANIFEST_VERSION)
+    m.setdefault("tenant_id", tenant_id)
     m.setdefault("blueprints", {})
+    if m["tenant_id"] != tenant_id:
+        raise ValueError(
+            f"Manifest tenant_id mismatch: file={m['tenant_id']!r}, oczekiwano={tenant_id!r}"
+        )
     return m
 
 

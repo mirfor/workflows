@@ -51,10 +51,14 @@ class GeneratedWorkflow:
 
     source: str
     """Pełna zawartość pliku `.py` po formatowaniu `black`."""
+    tenant_id: str
+    """Decyzja #4 — fizyczna izolacja per Tenant; ścieżki per Tenant."""
     blueprint_id: str
     version: str
     file_name: str
     """`<snake_id>__v<n>.py`."""
+    relative_path: str
+    """Względna ścieżka od repo root: `generated/<tenant_id>/workflows/<file_name>`."""
     class_name: str
     """`<PascalCaseId>_v<n>` (suffix kosmetyczny, decyzja #17)."""
     workflow_temporal_name: str
@@ -80,12 +84,20 @@ def compute_source_hash(workflow: Workflow) -> str:
 # ---------- Public API ----------------------------------------------------------
 
 
-def generate(workflow: Workflow, generated_at: datetime | None = None) -> GeneratedWorkflow:
+def generate(
+    workflow: Workflow,
+    *,
+    tenant_id: str,
+    generated_at: datetime | None = None,
+) -> GeneratedWorkflow:
     """Wygeneruj `.py` source z workflow IR.
 
+    `tenant_id` (decyzja #4) — namespace Tenanta; wpływa na `relative_path` i manifest.
     Wynik jest deterministyczny dla danego `workflow` + `generated_at`.
     `generated_at` w headerze; nie wpływa na `source_hash` (hash tylko z IR).
     """
+    if not tenant_id or not tenant_id.strip():
+        raise GeneratorError("`tenant_id` jest wymagany (decyzja #4 — fizyczna izolacja).")
     blueprint_id = workflow.document.name
     version = str(workflow.document.version)
     snake_id = _to_snake(blueprint_id)
@@ -93,6 +105,7 @@ def generate(workflow: Workflow, generated_at: datetime | None = None) -> Genera
     class_name = f"{pascal_id}_v{version}"
     workflow_name = blueprint_id  # bez suffix; Build ID pinuje wersję
     file_name = f"{snake_id}__v{version}.py"
+    relative_path = f"generated/{tenant_id}/workflows/{file_name}"
     src_hash = compute_source_hash(workflow)
     ts = (generated_at or datetime.now(tz=UTC)).isoformat(timespec="seconds")
 
@@ -101,7 +114,7 @@ def generate(workflow: Workflow, generated_at: datetime | None = None) -> Genera
     body_code = ast.unparse(module)
 
     header = (
-        f"# Generated from Blueprint {blueprint_id} v{version} at {ts}\n"
+        f"# Generated from Blueprint {tenant_id}/{blueprint_id} v{version} at {ts}\n"
         f"# Source hash: {src_hash}\n"
         "# DO NOT EDIT — regeneruj przez generator (`scripts/regenerate_*` lub publish flow).\n"
     )
@@ -110,9 +123,11 @@ def generate(workflow: Workflow, generated_at: datetime | None = None) -> Genera
 
     return GeneratedWorkflow(
         source=formatted,
+        tenant_id=tenant_id,
         blueprint_id=blueprint_id,
         version=version,
         file_name=file_name,
+        relative_path=relative_path,
         class_name=class_name,
         workflow_temporal_name=workflow_name,
         source_hash=src_hash,

@@ -56,21 +56,36 @@ def test_decision_03_two_layer_model() -> None:
 
 def test_decision_04_tenant_isolation_layout() -> None:
     """#4: Per-Tenant fizyczna izolacja. Layout: blueprints/<tenant>/<bp>/v<n>/."""
+    # Layout blueprints — nie flat
     bp_dir = REPO_ROOT / "blueprints"
     if bp_dir.exists():
-        for tenant_dir in bp_dir.iterdir():
-            if tenant_dir.is_dir() and not tenant_dir.name.startswith("."):
-                # Każdy podkatalog Tenant musi zawierać <blueprint_id>/v<n>/ struktura
-                for bp in tenant_dir.iterdir():
-                    if bp.is_dir():
-                        versions = [v for v in bp.iterdir() if v.is_dir() and v.name.startswith("v")]
-                        assert versions, f"Brak wersji v<n> w {bp}"
-    gen_dir = REPO_ROOT / "generated"
-    if gen_dir.exists():
-        # Manifest per Tenant: generated/<tenant>/manifest.json
-        for tenant_dir in gen_dir.iterdir():
-            if tenant_dir.is_dir() and not tenant_dir.name.startswith("."):
-                assert (tenant_dir / "manifest.json").exists() or (tenant_dir / "workflows").exists()
+        for entry in bp_dir.iterdir():
+            if entry.name.startswith(".") or entry.name == "__pycache__":
+                continue
+            assert entry.is_dir(), f"`blueprints/` nie może mieć plików top-level: {entry}"
+            for bp in entry.iterdir():
+                if bp.name.startswith(".") or bp.name == "__pycache__":
+                    continue
+                assert bp.is_dir(), f"Tenant {entry.name}/ nie może mieć plików top-level"
+                versions = [v for v in bp.iterdir() if v.is_dir() and v.name.startswith("v")]
+                assert versions, f"Brak wersji v<n> w blueprints/{entry.name}/{bp.name}/"
+
+    # Generator codegen wymusza tenant_id w API
+    import inspect
+    from generator import codegen
+    sig = inspect.signature(codegen.generate)
+    assert "tenant_id" in sig.parameters, "generate() musi przyjmować tenant_id (#4)"
+    src = inspect.getsource(codegen)
+    assert "generated/{tenant_id}/workflows/" in src
+
+    # Manifest per Tenant
+    from generator.manifest import manifest_path_for
+    p = str(manifest_path_for(REPO_ROOT, "demo"))
+    assert "/generated/" in p and "/demo/manifest.json" in p
+
+    # Worker wymaga --tenant
+    worker_src = (REPO_ROOT / "worker.py").read_text("utf-8")
+    assert '"--tenant"' in worker_src and "required=True" in worker_src
 
 
 def test_decision_05_cncfsw_pydantic_models() -> None:
@@ -167,7 +182,7 @@ def test_decision_12_auto_export_steps_output() -> None:
     from ir import Document, SetTask, Use, Workflow
     wf = Workflow(document=Document(dsl="1.0.0", namespace="t", name="x", version="1"),
                   use=Use(), do=[{"k": SetTask(set={"a": 1})}])
-    src = generate(wf, generated_at=datetime(2026, 1, 1, tzinfo=UTC)).source
+    src = generate(wf, tenant_id="demo", generated_at=datetime(2026, 1, 1, tzinfo=UTC)).source
     assert "steps_output[" in src
 
 
@@ -185,10 +200,11 @@ def test_decision_14_generated_py_layout() -> None:
     from ir import Document, SetTask, Use, Workflow
     wf = Workflow(document=Document(dsl="1.0.0", namespace="demo", name="hi", version="1"),
                   use=Use(), do=[{"k": SetTask(set={})}])
-    g = generate(wf, generated_at=datetime(2026, 1, 1, tzinfo=UTC))
+    g = generate(wf, tenant_id="demo", generated_at=datetime(2026, 1, 1, tzinfo=UTC))
     assert g.file_name == "hi__v1.py"
     assert g.class_name == "Hi_v1"
-    assert "Generated from Blueprint hi v1" in g.source
+    assert g.relative_path == "generated/demo/workflows/hi__v1.py"
+    assert "Generated from Blueprint demo/hi v1" in g.source
     assert "Source hash:" in g.source
     assert "DO NOT EDIT" in g.source
 
@@ -312,7 +328,7 @@ def test_decision_26_fail_fast_uncaught() -> None:
     from ir import Document, SetTask, Use, Workflow
     wf = Workflow(document=Document(dsl="1.0.0", namespace="t", name="x", version="1"),
                   use=Use(), do=[{"k": SetTask(set={})}])
-    src = generate(wf, generated_at=datetime(2026, 1, 1, tzinfo=UTC)).source
+    src = generate(wf, tenant_id="demo", generated_at=datetime(2026, 1, 1, tzinfo=UTC)).source
     # Brak workflow-level retry / handler
     assert "WorkflowRetryPolicy" not in src
     assert "document.onError" not in src

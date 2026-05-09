@@ -1,50 +1,55 @@
-"""Temporal Worker startup — ładuje wygenerowane workflows + activities.
+"""Temporal Worker startup per Tenant — ładuje active wygenerowane workflows + activities.
 
 Decyzje:
-- #14 / #17 / ADR-005: Worker importuje wszystkie `generated/workflows/<id>__v<n>.py`
-  i rejestruje workflow classes z manifest. Build ID = sha krótki commit-a (CI ustala).
-- #4 / ADR-006: Worker działa per Tenant namespace; namespace przekazany przez `--namespace`
-  lub env `TEMPORAL_NAMESPACE`.
+- #4 / ADR-006: Worker per Tenant namespace (osobny deploy + osobny manifest).
+- #14 / #17 / ADR-005: Worker importuje tylko `active_version` z `generated/<tenant>/manifest.json`;
+  Build ID = sha krótki commit-a (CI ustala).
+- #15: Workflow Sandbox passthrough_modules dla `activities` (workflow code importuje fully-qualified
+  function references) i `jq` (compiled JQ programs używane w `_eval()`).
 """
 
 from __future__ import annotations
 
 import argparse
 import asyncio
-import importlib
 import importlib.util
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
 from temporalio.client import Client
 from temporalio.worker import Worker
+from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner, SandboxRestrictions
 
 from activities import ALL_ACTIVITIES
 
 logger = logging.getLogger("worker")
 
 REPO_ROOT = Path(__file__).resolve().parent
-GENERATED_DIR = REPO_ROOT / "generated" / "workflows"
-MANIFEST_PATH = REPO_ROOT / "generated" / "manifest.json"
 
 
-def _load_active_workflow_classes() -> list[type]:
-    """Wczytaj wygenerowane `.py` per Blueprint × wersja, zwróć aktywne klasy.
+def _manifest_path(tenant_id: str) -> Path:
+    return REPO_ROOT / "generated" / tenant_id / "manifest.json"
 
-    Worker image zawiera tylko latest version per Blueprint (decyzja #17), ale lokalnie
-    podczas dev wszystkie wersje zostają na dysku — wczytujemy wyłącznie `active_version`
-    z manifestu żeby zminimalizować startup time + ryzyko konfliktu nazw.
-    """
-    if not MANIFEST_PATH.exists():
-        logger.warning("Brak %s — Worker startuje bez workflows.", MANIFEST_PATH)
+
+def _load_active_workflow_classes(tenant_id: str) -> list[type]:
+    """Wczytaj `active_version` per Blueprint dla podanego Tenanta (decyzja #4 + #17)."""
+    manifest_path = _manifest_path(tenant_id)
+    if not manifest_path.exists():
+        logger.warning("Brak %s — Worker startuje bez workflows.", manifest_path)
         return []
 
-    manifest: dict[str, Any] = json.loads(MANIFEST_PATH.read_text("utf-8"))
-    classes: list[type] = []
+    manifest: dict[str, Any] = json.loads(manifest_path.read_text("utf-8"))
+    if manifest.get("tenant_id") and manifest["tenant_id"] != tenant_id:
+        raise RuntimeError(
+            f"Manifest tenant_id mismatch: file={manifest['tenant_id']!r}, "
+            f"requested={tenant_id!r}"
+        )
 
+    classes: list[type] = []
     for blueprint_id, info in manifest.get("blueprints", {}).items():
         active = info.get("active_version")
         if not active:
@@ -59,45 +64,56 @@ def _load_active_workflow_classes() -> list[type]:
             logger.error("Brak pliku %s referowanego przez manifest.", file_path)
             continue
 
-        spec = importlib.util.spec_from_file_location(
-            f"generated_workflow_{blueprint_id}_v{active}", file_path
-        )
+        # Pełen dotted name żeby Workflow Sandbox umiał re-importować moduł.
+        module_name = f"generated.{tenant_id}.workflows.{file_path.stem}"
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
         if spec is None or spec.loader is None:
             logger.error("Nie udało się załadować spec dla %s.", file_path)
             continue
         module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module  # CRITICAL — sandbox re-import po name
         spec.loader.exec_module(module)
         cls = getattr(module, class_name, None)
         if cls is None:
             logger.error("Klasa %s nie istnieje w %s.", class_name, file_path)
             continue
         classes.append(cls)
-        logger.info("Załadowano workflow %s v%s (class=%s)", blueprint_id, active, class_name)
+        logger.info("Załadowano workflow %s/%s v%s (class=%s)",
+                    tenant_id, blueprint_id, active, class_name)
 
     return classes
 
 
 async def run_worker(
+    *,
+    tenant_id: str,
     target_url: str,
     namespace: str,
     task_queue: str,
     build_id: str | None = None,
 ) -> None:
     client = await Client.connect(target_url, namespace=namespace)
-    workflow_classes = _load_active_workflow_classes()
+    workflow_classes = _load_active_workflow_classes(tenant_id)
+
+    sandbox_restrictions = SandboxRestrictions.default.with_passthrough_modules(
+        "activities", "jq",
+    )
 
     worker_kwargs: dict[str, Any] = {
         "task_queue": task_queue,
         "workflows": workflow_classes,
         "activities": ALL_ACTIVITIES,
+        "workflow_runner": SandboxedWorkflowRunner(restrictions=sandbox_restrictions),
     }
     if build_id:
         worker_kwargs["build_id"] = build_id
 
     worker = Worker(client, **worker_kwargs)
     logger.info(
-        "Worker startuje: target=%s namespace=%s queue=%s workflows=%d activities=%d build_id=%s",
-        target_url, namespace, task_queue, len(workflow_classes), len(ALL_ACTIVITIES), build_id,
+        "Worker startuje: tenant=%s target=%s namespace=%s queue=%s "
+        "workflows=%d activities=%d build_id=%s",
+        tenant_id, target_url, namespace, task_queue,
+        len(workflow_classes), len(ALL_ACTIVITIES), build_id,
     )
     await worker.run()
 
@@ -107,13 +123,36 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s | %(message)s",
     )
-    parser = argparse.ArgumentParser(description="Workflow Platform Temporal Worker")
+    parser = argparse.ArgumentParser(description="Workflow Platform Temporal Worker (per Tenant)")
+    parser.add_argument(
+        "--tenant",
+        required=True,
+        help="Tenant ID — manifest ładowany z generated/<tenant>/manifest.json (decyzja #4)",
+    )
     parser.add_argument("--target", default=os.environ.get("TEMPORAL_TARGET", "localhost:7233"))
-    parser.add_argument("--namespace", default=os.environ.get("TEMPORAL_NAMESPACE", "default"))
-    parser.add_argument("--task-queue", default=os.environ.get("TEMPORAL_TASK_QUEUE", "weaver-default"))
+    parser.add_argument(
+        "--namespace",
+        default=os.environ.get("TEMPORAL_NAMESPACE"),
+        help="Temporal namespace (jeśli pusty — używa --tenant jako namespace per #4 fizyczna izolacja)",
+    )
+    parser.add_argument(
+        "--task-queue",
+        default=os.environ.get("TEMPORAL_TASK_QUEUE"),
+        help="Task queue (default: weaver-<tenant>)",
+    )
     parser.add_argument("--build-id", default=os.environ.get("TEMPORAL_BUILD_ID"))
     args = parser.parse_args()
-    asyncio.run(run_worker(args.target, args.namespace, args.task_queue, args.build_id))
+
+    namespace = args.namespace or args.tenant
+    task_queue = args.task_queue or f"weaver-{args.tenant}"
+
+    asyncio.run(run_worker(
+        tenant_id=args.tenant,
+        target_url=args.target,
+        namespace=namespace,
+        task_queue=task_queue,
+        build_id=args.build_id,
+    ))
 
 
 if __name__ == "__main__":

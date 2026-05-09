@@ -9,12 +9,13 @@ from generator.codegen import (
     compute_source_hash,
     generate,
 )
-from generator.manifest import update_manifest
+from generator.manifest import manifest_path_for, update_manifest
 
 __all__ = [
     "GeneratedWorkflow",
     "GeneratorError",
     "compute_source_hash",
     "generate",
+    "manifest_path_for",
     "update_manifest",
 ]

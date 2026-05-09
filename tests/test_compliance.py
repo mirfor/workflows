@@ -45,7 +45,6 @@ def test_decision_02_structural_primitives_only() -> None:
     # (placeholder — pełen test po implementacji)
 
 
-@pytest.mark.xfail(reason="#3 — closed-set walidacja niezaimplementowana", strict=False)
 def test_decision_03_two_layer_model() -> None:
     """#3: Dwuwarstwowy model — 12 task types (closed) + Tools/Agents (open)."""
     from ir import (  # noqa: F401
@@ -57,7 +56,6 @@ def test_decision_03_two_layer_model() -> None:
     assert len(closed_set) == 12
 
 
-@pytest.mark.xfail(reason="#4 — multi-tenant layout niezaimplementowany", strict=False)
 def test_decision_04_tenant_isolation_layout() -> None:
     """#4: Per-Tenant fizyczna izolacja. Layout: blueprints/<tenant>/<bp>/v<n>/."""
     bp_dir = REPO_ROOT / "blueprints"
@@ -77,7 +75,6 @@ def test_decision_04_tenant_isolation_layout() -> None:
                 assert (tenant_dir / "manifest.json").exists() or (tenant_dir / "workflows").exists()
 
 
-@pytest.mark.xfail(reason="#5 — Pydantic models nie istnieją", strict=False)
 def test_decision_05_cncfsw_pydantic_models() -> None:
     """#5: CNCF SW 1.0 JSON jako wire format + Pydantic models."""
     from ir import Document, Workflow
@@ -106,7 +103,6 @@ def test_decision_06_all_12_task_types_supported() -> None:
     from generator.codegen import _build_task_stmts  # noqa: F401
 
 
-@pytest.mark.xfail(reason="#7 — function types weaver_tool/weaver_specialized_agent", strict=False)
 def test_decision_07_tools_agents_as_functions() -> None:
     """#7: Tools/Specialized Agents jako CNCF SW `functions` z custom `type`."""
     from ir import SpecializedAgentFunction, ToolFunction
@@ -117,7 +113,6 @@ def test_decision_07_tools_agents_as_functions() -> None:
     assert af.type == "weaver_specialized_agent"
 
 
-@pytest.mark.xfail(reason="#8 — task metadata extensions", strict=False)
 def test_decision_08_task_extensions_in_metadata() -> None:
     """#8: Task ma `metadata: dict | None` dla extensions Weaver/Temporal."""
     from ir import CallTask
@@ -162,7 +157,6 @@ def test_decision_10_trigger_as_first_node() -> None:
     assert wf.metadata["weaver"]["trigger"]["type"] == "manual_trigger"
 
 
-@pytest.mark.xfail(reason="#11 — JQ w warunkach", strict=False)
 def test_decision_11_jq_compiled_from_ui() -> None:
     """#11: Warunki w UI kompilowane do JQ; brak ręcznego pisania JQ, brak LLM-NL w MVP."""
     from ir import SwitchTask
@@ -183,7 +177,6 @@ def test_decision_12_auto_export_steps_output() -> None:
     assert "steps_output[" in src
 
 
-@pytest.mark.xfail(reason="#13 — Pydantic JSON Schema export", strict=False)
 def test_decision_13_pydantic_io_schemas() -> None:
     """#13: Pydantic models eksportują JSON Schema (`model_json_schema()`)."""
     from ir import Workflow
@@ -247,7 +240,6 @@ def test_decision_18_activity_registry_layout() -> None:
     assert call_specialized_agent in ALL_ACTIVITIES
 
 
-@pytest.mark.xfail(reason="#19 — trzy formy persistowane", strict=False)
 def test_decision_19_three_forms_persisted() -> None:
     """#19: Po Publish: blueprints/<t>/<id>/v<n>/{reactflow.json,cncf-sw.json} + generated/<t>/workflows/<id>__v<n>.py."""
     bp_dir = REPO_ROOT / "blueprints"
@@ -269,7 +261,6 @@ def test_decision_19_three_forms_persisted() -> None:
                         assert py.exists(), f"Brak {py}"
 
 
-@pytest.mark.xfail(reason="#20 — profile based policies", strict=False)
 def test_decision_20_profile_based_policies() -> None:
     """#20: Use.retries/timeouts profile referowane przez nazwę z task."""
     from ir import RetryPolicy, TimeoutPolicy, Use
@@ -293,7 +284,6 @@ def test_decision_21_retry_unsupported_fields_blocked() -> None:
     assert any(i.code.startswith("E1") for i in rep.errors)
 
 
-@pytest.mark.xfail(reason="#22 — timeout three fields", strict=False)
 def test_decision_22_timeout_three_fields() -> None:
     """#22: TimeoutPolicy: `after` wymagane (start_to_close); metadata.temporal.{heartbeat,schedule_to_close}."""
     from ir import TimeoutPolicy
@@ -304,7 +294,6 @@ def test_decision_22_timeout_three_fields() -> None:
     assert not hasattr(tp, "schedule_to_start")
 
 
-@pytest.mark.xfail(reason="#23 — error taxonomy", strict=False)
 def test_decision_23_error_taxonomy() -> None:
     """#23: 7 base error types + per-Tool extensions; walidator blokuje unknown type."""
     from ir import BaseErrorType
@@ -314,7 +303,6 @@ def test_decision_23_error_taxonomy() -> None:
     assert base_types == expected
 
 
-@pytest.mark.xfail(reason="#24 — non-retryable merge", strict=False)
 def test_decision_24_non_retryable_merge() -> None:
     """#24: Manifest defaults ∪ profile.nonRetryableTypes → Temporal.non_retryable_error_types."""
     from ir import RetryPolicy
@@ -344,7 +332,6 @@ def test_decision_26_fail_fast_uncaught() -> None:
     assert "document.onError" not in src
 
 
-@pytest.mark.xfail(reason="#27 — workflow_run_timeout only", strict=False)
 def test_decision_27_workflow_run_timeout_only() -> None:
     """#27: Pydantic model wspiera tylko `workflow_run_timeout`; brak `execution_timeout`/`task_timeout`."""
     from ir import TemporalWorkflowMetadata
@@ -366,7 +353,6 @@ def test_decision_28_cascade_defaults_resolution() -> None:
     assert cascade_resolve(t, None, None).default_start_to_close == "PT10M"
 
 
-@pytest.mark.xfail(reason="#29 — no native saga", strict=False)
 def test_decision_29_no_native_saga() -> None:
     """#29: Saga = pattern user-implemented; brak native construct w IR."""
     from ir import tasks as t_mod
@@ -376,7 +362,6 @@ def test_decision_29_no_native_saga() -> None:
     # Compensation jest user-implemented w try.catch.do
 
 
-@pytest.mark.xfail(reason="#30 — compiled only, no interpreter", strict=False)
 def test_decision_30_compiled_only_no_interpreter() -> None:
     """#30: Brak interpreter modułu. Każdy Blueprint ma `.py` w generated/<tenant>/workflows/."""
     assert not _exists("interpreter/")

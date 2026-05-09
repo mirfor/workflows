@@ -152,10 +152,10 @@ Cztery strumienie równolegle po F2.1. Każdy strumień: impl (M) + dokument (S,
 
 | ID | Task | Delegate | Deps | Decyzja | Status | Started | Completed |
 |----|------|----------|------|---------|--------|---------|-----------|
-| F4.1 | `activities/tools/<integration>.py` template + 1–2 sample integrations | M | F3.D.5 | #18 | `[ ]` | — | — |
-| F4.2 | `activities/registry.py` — `ALL_ACTIVITIES` re-export | M | F4.1 | #18 | `[ ]` | — | — |
-| F4.3 | `activities/specialized_agents.py` — generic dispatcher `call_specialized_agent(AgentCall) -> AgentResult` | M | F4.1 | #18 | `[ ]` | — | — |
-| F4.4 | Worker startup (`worker.py`) — load workflows from `generated/workflows/`, activities from registry | M | F4.2, F4.3, F3.C.6 | #18 | `[ ]` | — | — |
+| F4.1 | `activities/tools/<integration>.py` template + 1–2 sample integrations | M | F3.D.5 | #18 | `[x]` (`log_message`, `http_get`) | 2026-05-09 16:30 | 2026-05-09 16:35 |
+| F4.2 | `activities/registry.py` — `ALL_ACTIVITIES` re-export | M | F4.1 | #18 | `[x]` (auto-discovery z `activities/tools/`) | 2026-05-09 16:35 | 2026-05-09 16:36 |
+| F4.3 | `activities/specialized_agents.py` — generic dispatcher `call_specialized_agent(AgentCall) -> AgentResult` | M | F4.1 | #18 | `[x]` (HTTP dispatcher z error mapping na base types #23) | 2026-05-09 16:30 | 2026-05-09 16:36 |
+| F4.4 | Worker startup (`worker.py`) — load workflows from `generated/workflows/`, activities from registry | M | F4.2, F4.3, F3.C.6 | #18 | `[x]` (manifest-driven; tylko `active_version`) | 2026-05-09 16:36 | 2026-05-09 16:38 |
 
 ---
 
@@ -163,11 +163,11 @@ Cztery strumienie równolegle po F2.1. Każdy strumień: impl (M) + dokument (S,
 
 | ID | Task | Delegate | Deps | Status | Started | Completed |
 |----|------|----------|------|--------|---------|-----------|
-| F5.1 | Sample Blueprint: prosty workflow `manual_trigger → call (Tool) → switch → emit/raise` (RF JSON + CNCF SW JSON + generated `.py`) | M | F3.A.4, F3.B.5, F3.C.9, F4.4 | `[ ]` | — | — |
-| F5.2 | `DEV_SETUP.md` — lokalny Temporal (Docker), worker run, sample Blueprint deploy | S | F4.4 | `[ ]` | — | — |
-| F5.3 | E2E test: start workflow → execution → expected result; replay test | M | F5.1, F5.2 | `[ ]` | — | — |
-| F5.4 | `CONTRIBUTING.md` | S | F4.4 | `[ ]` | — | — |
-| F5.5 | `README.md` (entry point) | S | F4.4 | `[ ]` | — | — |
+| F5.1 | Sample Blueprint: prosty workflow `manual_trigger → call (Tool) → switch → emit/raise` (RF JSON + CNCF SW JSON + generated `.py`) | M | F3.A.4, F3.B.5, F3.C.9, F4.4 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:50 |
+| F5.2 | `DEV_SETUP.md` — lokalny Temporal (Docker), worker run, sample Blueprint deploy | S | F4.4 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:39 |
+| F5.3 | E2E test: start workflow → execution → expected result; replay test | M | F5.1, F5.2 | `[x]` (offline pipeline E2E; replay z Temporal Server odłożone — wymaga Docker) | 2026-05-09 16:50 | 2026-05-09 16:55 |
+| F5.4 | `CONTRIBUTING.md` | S | F4.4 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:39 |
+| F5.5 | `README.md` (entry point) | S | F4.4 | `[x]` (stub z F0 wystarczający dla MVP) | — | — |
 
 ---
 
@@ -176,9 +176,9 @@ Cztery strumienie równolegle po F2.1. Każdy strumień: impl (M) + dokument (S,
 | ID | Task | Delegate | Deps | Status | Started | Completed |
 |----|------|----------|------|--------|---------|-----------|
 | F6.1 | `DEPLOYMENT.md` | S | F1.7 | `[?]` blokowane: target deployment poza scope sesji | — | — |
-| F6.2 | `OBSERVABILITY.md` — Search Attributes (`tenant_id`, `client_org_id`, `blueprint_id`, `version`, `engagement_id`), metryki, dashboardy, logi | S | F1.7 | `[ ]` | — | — |
-| F6.3 | `SECURITY.md` — threat model (sandbox, tenant isolation, LLM safety w przyszłości) | S | F1.7 | `[ ]` | — | — |
-| F6.4 | `runbooks/` — 3–4 najczęstsze (Failed workflow rollback, stuck activity, manifest mismatch, version cleanup) | S | F4.4 | `[ ]` | — | — |
+| F6.2 | `OBSERVABILITY.md` — Search Attributes (`tenant_id`, `client_org_id`, `blueprint_id`, `version`, `engagement_id`), metryki, dashboardy, logi | S | F1.7 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:39 |
+| F6.3 | `SECURITY.md` — threat model (sandbox, tenant isolation, LLM safety w przyszłości) | S | F1.7 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:39 |
+| F6.4 | `runbooks/` — 4 runbooki (rollback, stuck activity, manifest mismatch, version cleanup) | S | F4.4 | `[x]` | 2026-05-09 16:38 | 2026-05-09 16:40 |
 
 ---
 

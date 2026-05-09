@@ -34,6 +34,7 @@ Drzewo zdarzeń od edycji w designerze do uruchomienia Engagement na Workerze. G
    (3) Gate: Publish
         │ — Blueprint-level lock
         │ — walidator IR `error` count == 0
+        │ — `tenant_id` resolved z layoutu `blueprints/<tenant>/<bp>/v<n>/reactflow.json`
         │ — source hash check (idempotency: czy v<n> już istnieje z tym hashem?)
         │     ├─ tak → no-op (zwróć istniejący Build ID)
         │     └─ nie → kontynuuj
@@ -45,9 +46,9 @@ Drzewo zdarzeń od edycji w designerze do uruchomienia Engagement na Workerze. G
         │ — black formatter (fixed config)
         ▼
    (5) Git commit
-        │ — `blueprints/<id>/v<n>/{reactflow.json, cncf-sw.json}`
-        │ — `generated/workflows/<snake_id>__v<n>.py`
-        │ — `generated/manifest.json` (dodanie wpisu blueprints[<id>].versions[<n>])
+        │ — `blueprints/<tenant>/<bp>/v<n>/{reactflow.json, cncf-sw.json}`
+        │ — `generated/<tenant>/workflows/<snake_id>__v<n>.py`
+        │ — `generated/<tenant>/manifest.json` (dodanie wpisu blueprints[<bp>].versions[<n>])
         ▼
    (6) CI build
         │ — uv sync, lint, type, test
@@ -56,10 +57,12 @@ Drzewo zdarzeń od edycji w designerze do uruchomienia Engagement na Workerze. G
         │ — push image do registry
         ▼
    (7) Rolling deploy
+        │ — Worker per Tenant: osobny proces uruchamiany z `--tenant <id>` arg
+        │ — namespace = `tenant_id`; task queue = `weaver-<tenant>`
         │ — Worker image z nowym Build ID dołącza do Tenant namespace
         │ — Temporal kieruje *nowe* Engagementy na nowy Build ID
         │ — *running* Engagementy na poprzednim Build ID kompletują na starym Workerze
-        │ — manifest: blueprints[<id>].active_version = v<n>; deprecated_versions += poprzednia
+        │ — manifest: blueprints[<bp>].active_version = v<n>; deprecated_versions += poprzednia
         ▼
    (8) Activation
         │ — UI pokazuje v<n> jako Active
@@ -71,6 +74,17 @@ Drzewo zdarzeń od edycji w designerze do uruchomienia Engagement na Workerze. G
         ▼
        [Retired]
 ```
+
+## Bulk operations
+
+| Skrypt | Zakres | Opis |
+|---|---|---|
+| `scripts/regenerate_all.py` | wszystkie Tenanty | iteruje `blueprints/<tenant>/<bp>/v<n>/reactflow.json`, regeneruje `.py` per Tenant do `generated/<tenant>/workflows/` |
+| `scripts/validate_all.py` | wszystkie Tenanty | bulk walidacja IR per Tenant; `--strict` ustawia exit code dla CI |
+
+- Filtry: `--tenant <id>` zawęża do jednego Tenanta; `--blueprint <bp>` do jednego Blueprintu (kompatybilny z `--tenant`).
+- Idempotency: source hash check per `(tenant, blueprint, version)`; niezmienione IR → no-op `.py`.
+- CI hook: job `codegen-idempotency` uruchamia `regenerate_all.py` i sprawdza, że `git diff generated/` jest pusty; niepusty diff blokuje merge.
 
 ## Preview path (przed Publish)
 
@@ -113,8 +127,12 @@ Preview używa tego samego pipeline'u, ale Worker w izolowanym namespace. Brak w
 | Publish | Blueprint-level lock + source hash check |
 | CI build codegen check | regenerate all → `git diff generated/` = empty → pass |
 | Manifest update | atomowy zapis (write to temp + rename) |
+| Manifest path | `generated/<tenant>/manifest.json` — każdy Tenant ma niezależny manifest |
+| `update_manifest()` | waliduje, że `gen.tenant_id` zgadza się z `manifest_path` (`generated/<tenant>/...`); rozjazd → błąd |
 
 ## SLO (cele)
+
+Metryki dotyczą per-Tenant Workera (osobny proces na Tenant, osobny namespace + task queue).
 
 | Metryka | Cel | Notatka |
 |---|---|---|
@@ -136,12 +154,24 @@ Preview używa tego samego pipeline'u, ale Worker w izolowanym namespace. Brak w
 | `version` | numer wersji `<n>` | tracking per wersja |
 | `engagement_id` | UUID konkretnego uruchomienia | korelacja end-to-end |
 
+- `tenant_id` SA wynika z konfiguracji Workera (`--tenant <id>`); spójny z layoutem `generated/<tenant>/`.
+
 ## Concurrent publish
 
 | Scenariusz | Zachowanie |
 |---|---|
 | Dwóch designerów Publish na różnych Blueprintach równocześnie | Niezależne lock-i; równoległy CI workflow per Blueprint |
 | Dwóch designerów Publish na tym samym Blueprincie równocześnie | Blueprint-level lock; drugi czeka lub dostaje 409; przy tym samym source hash → drugi widzi no-op |
+
+## Cross-tenant isolation
+
+| Aspekt | Mechanizm |
+|---|---|
+| Manifesty | `generated/<tenant>/manifest.json` per Tenant; zbiory `blueprint_ids` rozłączne (compliance: `test_f5_cross_tenant_isolation_via_separate_manifests`) |
+| Worker scope | `--tenant <X>` ładuje wyłącznie `generated/<X>/manifest.json`; workflowy innych Tenantów niewidoczne dla rejestracji |
+| Temporal namespace | osobny per Tenant (decyzja #4) |
+| Task queue | osobna per Tenant: `weaver-<tenant>` |
+| E2E (F5.6) | `start_workflow("hello")` w namespace `demo` nie wykonuje workflow obecnego tylko w `acme` |
 
 ## Powiązane dokumenty
 

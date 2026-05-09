@@ -2,7 +2,28 @@
 
 Restart po pierwszym MVP: implementacja **per task wymaga passing compliance test** (`tests/test_compliance.py`). Mapowanie decyzja → test w `docs/COMPLIANCE.md`.
 
-**Ostatnia aktualizacja:** 2026-05-09 (post-reset)
+**Ostatnia aktualizacja:** 2026-05-09 (po F6 — wszystkie fazy zamknięte)
+
+## Status (live)
+
+| Faza | Compliance | Status |
+|---|---|---|
+| F0 — scaffold + compliance baseline | 0 → 30 (3 xpassed vacuously) | ✅ |
+| F1 — multi-tenant layout + bulk ops | egzekwowane przez F3.E.2 | ✅ |
+| F2 — Pydantic IR | 15 passed (#3, #4, #5, #7, #8, #11, #13, #19, #20, #22, #23, #24, #27, #29, #30) | ✅ |
+| F3.A — mapper RF→IR | +5 passed (#1, #2, #9, #10, #25) → 20 | ✅ |
+| F3.B — walidator | +2 passed (#16, #21) → 22 | ✅ |
+| F3.C — generator | +6 passed (#6, #12, #14, #15, #17, #26) → 28 | ✅ |
+| F3.D + F4 — manifest builder + activities + worker | +2 passed (#18, #28) → 30 | ✅ |
+| F3.E.2 — multi-tenant restructure | #4, #19 realnie egzekwowane (były vacuous) | ✅ |
+| F3.E.1 — switch flow naprawiony | +2 nowe testy → 32 | ✅ |
+| F3.E.3 — wszystkie 12 task types (no placeholder) | #6 strict | ✅ |
+| F5 — multi-blueprint suite + cross-tenant isolation | +2 nowe testy → 34 | ✅ |
+| F6 — updates dokumentów | — | ✅ |
+
+**Compliance: 34/34 passing** (`uv run pytest tests/test_compliance.py`).
+
+E2E zweryfikowane na żywym Temporal Server: 6 scenariuszy + cross-tenant isolation.
 
 ## Reguły procesu
 

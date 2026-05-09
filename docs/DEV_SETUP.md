@@ -27,16 +27,18 @@ uv sync --all-extras
 ### 3.1 Wariant A — `temporal` CLI (rekomendowany)
 
 ```bash
-temporal server start-dev \
-  --ui-port 8233 \
-  --port 7233 \
-  --namespace default
+temporal server start-dev --port 7233 --ui-port 8233
+# Stwórz namespace per Tenant
+temporal operator namespace create demo --address localhost:7233
+temporal operator namespace create acme --address localhost:7233
 ```
 
 | Endpoint | Port | Protokół |
 |----------|------|----------|
 | Frontend gRPC | 7233 | gRPC |
 | Web UI | 8233 | HTTP |
+
+Namespace = `tenant_id` (decyzja #4 — fizyczna izolacja per Tenant).
 
 ### 3.2 Wariant B — Docker
 
@@ -57,52 +59,47 @@ Generuje `generated/manifest.json` z deklaracji activity w `activities/`.
 
 ## 5. Generowanie sample Blueprint
 
-Wejście: `blueprints/sample/v1/reactflow.json` (React Flow JSON).
+Wejście: `blueprints/<tenant>/<blueprint>/<version>/reactflow.json`.
 
 ```bash
-uv run python -m scripts.regenerate_workflow blueprints/sample/v1/reactflow.json
+# Pojedynczy
+uv run python -m scripts.regenerate_workflow blueprints/demo/sample/v1/reactflow.json
+
+# Bulk — wszystkie Tenanty / wszystkie Blueprinty
+uv run python -m scripts.regenerate_all
+uv run python -m scripts.regenerate_all --tenant demo
+uv run python -m scripts.regenerate_all --tenant demo --blueprint sample
+
+# Walidacja (bez generacji `.py`)
+uv run python -m scripts.validate_all
+uv run python -m scripts.validate_all --tenant demo --strict
 ```
 
-Wyjście: `blueprints/sample/v1/ir.json` + `blueprints/sample/v1/workflow.py`.
-
-Jeśli `regenerate_workflow.py` nie istnieje — wywołać manualnie w REPL:
-
-```python
-from mapper import map_reactflow_to_ir
-from generator import generate_workflow_py
-ir = map_reactflow_to_ir(open("blueprints/sample/v1/reactflow.json").read())
-open("blueprints/sample/v1/workflow.py", "w").write(generate_workflow_py(ir))
-```
+Wyjście: `blueprints/<tenant>/<blueprint>/<version>/ir.json` + `workflow.py`; manifest per Tenant w `generated/<tenant>/manifest.json`.
 
 ## 6. Worker
 
 ```bash
-uv run python worker.py \
-  --target localhost:7233 \
-  --namespace default \
-  --task-queue weaver-default
+# Worker per Tenant (osobny namespace = tenant_id, task queue = weaver-<tenant>)
+uv run python worker.py --tenant demo --target localhost:7233 &
+uv run python worker.py --tenant acme --target localhost:7233 &
 ```
 
-Worker rejestruje wszystkie workflow z `generated/manifest.json` (`active_version`) oraz activity z `activities/`.
+`--tenant` jest **wymagany** (decyzja #4 — fizyczna izolacja). Worker rejestruje workflow z `generated/<tenant>/manifest.json` (`active_version`) oraz activity z `activities/`; łączy się do namespace = `<tenant>` i task queue = `weaver-<tenant>`.
 
 ## 7. Sample Engagement
 
 ```python
-import asyncio
 from temporalio.client import Client
-
-async def main():
-    client = await Client.connect("localhost:7233", namespace="default")
-    handle = await client.start_workflow(
-        "SampleWorkflow",
-        {"input": "value"},
-        id="engagement-001",
-        task_queue="weaver-default",
-    )
-    print(await handle.result())
-
-asyncio.run(main())
+client = await Client.connect("localhost:7233", namespace="demo")
+handle = await client.start_workflow(
+    "sample", {"tier": "vip"},
+    id="my-engagement", task_queue="weaver-demo",
+)
+result = await handle.result()
 ```
+
+`namespace` = `tenant_id`; `task_queue` = `weaver-<tenant>`; nazwa workflow = `blueprint_id`.
 
 ## 8. Testy i lint
 
@@ -141,17 +138,27 @@ uv run python -m scripts.build_manifest && \
 git diff --exit-code generated/ schemas/
 ```
 
-## 12. Częste problemy
+## 12. Compliance check
+
+```bash
+uv run pytest tests/test_compliance.py -v   # 34 testów (#1–#30 + F3.E + F5)
+```
+
+Każda decyzja projektowa ma assertion test. CI blokuje merge przy fail.
+
+## 13. Częste problemy
 
 | Symptom | Rozwiązanie |
 |---------|-------------|
 | `pyjq` build error: `libjq` | macOS: `brew install jq`; Debian/Ubuntu: `apt install libjq-dev libonig-dev` |
 | `connection refused` na 7233 | sprawdź czy Temporal Server działa; w Dockerze: `--target host.docker.internal:7233` |
-| `Workflow not found` | sprawdź `generated/manifest.json` → `active_version`; potwierdź obecność `.py` w `blueprints/<name>/<version>/workflow.py` |
+| `Workflow not found` | sprawdź `generated/<tenant>/manifest.json` → `active_version`; potwierdź obecność `.py` w `blueprints/<tenant>/<blueprint>/<version>/workflow.py` |
 | `mypy` błąd na `generated/` | regeneruj manifest; nie edytuj plików generowanych ręcznie |
 | `ruff` błędy w `blueprints/*/workflow.py` | regeneruj — generator emituje formatowanie zgodne z `ruff` |
+| `Worker startuje bez workflows` | brak `generated/<tenant>/manifest.json` — uruchom `regenerate_all.py --tenant <id>` |
+| `Manifest tenant_id mismatch` | pole `tenant_id` w manifest ≠ argument `--tenant` workera |
 
-## 13. Powiązane dokumenty
+## 14. Powiązane dokumenty
 
 | Plik | Zakres |
 |------|--------|

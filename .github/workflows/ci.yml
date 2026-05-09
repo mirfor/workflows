@@ -37,6 +37,22 @@ jobs:
       - run: uv sync --all-extras
       - run: uv run pytest
 
+  compliance:
+    name: Compliance (decyzje #1–#30)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras
+      - name: Run compliance tests (xfail dozwolone, xpass NIE)
+        run: |
+          uv run pytest tests/test_compliance.py -v --runxfail --tb=short \
+            || echo "Compliance review required — patrz docs/COMPLIANCE.md"
+      - name: Strict gate — żaden test nie może fail bez xfail markeru
+        run: uv run pytest tests/test_compliance.py --strict-markers
+
   codegen-idempotency:
     runs-on: ubuntu-latest
     steps:

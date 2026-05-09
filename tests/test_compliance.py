@@ -30,14 +30,12 @@ def _exists(path: str) -> bool:
 # ============== Decyzje #1–#30 ===================================================
 
 
-@pytest.mark.xfail(reason="#1 — mapper/reactflow_to_cncfsw.py jeszcze nie istnieje", strict=False)
 def test_decision_01_reactflow_source_of_truth() -> None:
     """#1: Source of truth UI = React Flow. Brak modułu BPMN→IR."""
     assert _exists("mapper/reactflow_to_cncfsw.py"), "Mapper RF→IR musi istnieć"
     assert not _exists("mapper/bpmn_to_cncfsw.py"), "BPMN mapper poza scope MVP"
 
 
-@pytest.mark.xfail(reason="#2 — strukturalne primitivy w mapperze niezaimplementowane", strict=False)
 def test_decision_02_structural_primitives_only() -> None:
     """#2: UI primitivy strukturalne (Sequence/Branch/Loop/Parallel/WaitSignal). Brak surowych krawędzi."""
     from mapper import MapperError, map_reactflow_to_cncfsw  # noqa: F401
@@ -120,7 +118,6 @@ def test_decision_08_task_extensions_in_metadata() -> None:
     assert t.metadata == {"weaver": {"k": "v"}, "temporal": {"x": 1}}
 
 
-@pytest.mark.xfail(reason="#9 — edge handle conventions", strict=False)
 def test_decision_09_edge_handles_mapping() -> None:
     """#9: Mapper rozpoznaje case_<id>/default/branch_<n>/main/catch_<err>."""
     from mapper import map_reactflow_to_cncfsw
@@ -141,7 +138,6 @@ def test_decision_09_edge_handles_mapping() -> None:
     map_reactflow_to_cncfsw(rf)
 
 
-@pytest.mark.xfail(reason="#10 — trigger w metadata.weaver.trigger", strict=False)
 def test_decision_10_trigger_as_first_node() -> None:
     """#10: Trigger jako pierwszy node (incoming==0); persystowany w metadata.weaver.trigger."""
     from mapper import map_reactflow_to_cncfsw
@@ -311,7 +307,6 @@ def test_decision_24_non_retryable_merge() -> None:
     assert rp.metadata["temporal"]["non_retryable_error_types"] == ["Y"]
 
 
-@pytest.mark.xfail(reason="#25 — multi-catch compilation", strict=False)
 def test_decision_25_multi_catch_compilation() -> None:
     """#25: Mapper przy >1 catch UI emituje single CNCF SW catch z switch task wewnątrz catch.do."""
     from mapper import map_reactflow_to_cncfsw  # noqa: F401

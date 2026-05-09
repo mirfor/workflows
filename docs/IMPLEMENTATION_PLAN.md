@@ -106,45 +106,45 @@ Cztery strumienie równolegle po F2.1. Każdy strumień: impl (M) + dokument (S,
 
 | ID | Task | Delegate | Deps | Decyzja | Status | Started | Completed |
 |----|------|----------|------|---------|--------|---------|-----------|
-| F3.A.1 | Mapper impl (`mapper/reactflow_to_cncfsw.py`) — flat edges + container nodes | M | F2.1 | #9, #19 | `[ ]` | — | — |
-| F3.A.2 | Multi-catch UI → `switch` w `catch.do` compilation | M | F3.A.1 | #25 | `[ ]` | — | — |
-| F3.A.3 | `codegen/REACTFLOW_TO_IR.md` | S | F3.A.1 | #9, #25 | `[ ]` | — | — |
-| F3.A.4 | Tests (golden files RF JSON → CNCF SW JSON) | M | F3.A.1, F3.A.2 | — | `[ ]` | — | — |
+| F3.A.1 | Mapper impl (`mapper/reactflow_to_cncfsw.py`) — flat edges + container nodes | M | F2.1 | #9, #19 | `[x]` | 2026-05-09 15:42 | 2026-05-09 16:00 |
+| F3.A.2 | Multi-catch UI → `switch` w `catch.do` compilation | M | F3.A.1 | #25 | `[x]` | 2026-05-09 16:00 | 2026-05-09 16:00 |
+| F3.A.3 | `codegen/REACTFLOW_TO_IR.md` | S | F3.A.1 | #9, #25 | `[x]` | 2026-05-09 15:42 | 2026-05-09 15:43 |
+| F3.A.4 | Tests (golden files RF JSON → CNCF SW JSON) | M | F3.A.1, F3.A.2 | — | `[x]` | 2026-05-09 16:00 | 2026-05-09 16:01 |
 
 ### F3.B — Walidator IR
 
 | ID | Task | Delegate | Deps | Decyzja | Status | Started | Completed |
 |----|------|----------|------|---------|--------|---------|-----------|
-| F3.B.1 | Walidator impl (`validator/`) — 6 kategorii A–F | M | F2.1 | #16 | `[ ]` | — | — |
-| F3.B.2 | Reguły kategoria E: retry policy non-supported fields blokowane (`jitter`, `when`, `limit.duration`, `limit.attempt.duration`) | M | F3.B.1 | #21 | `[ ]` | — | — |
-| F3.B.3 | Reguły kategoria C/D: error taxonomy match (base ∪ tool.errors) | M | F3.B.1 | #23 | `[ ]` | — | — |
-| F3.B.4 | Auto-przypisanie `default_timeout` (cascade Tenant → Client Org → Blueprint) | M | F3.B.1 | #28 | `[ ]` | — | — |
-| F3.B.5 | Tests | M | F3.B.1–F3.B.4 | — | `[ ]` | — | — |
+| F3.B.1 | Walidator impl (`validator/`) — 6 kategorii A–F | M | F2.1 | #16 | `[x]` | 2026-05-09 16:01 | 2026-05-09 16:08 |
+| F3.B.2 | Reguły kategoria E: retry policy non-supported fields blokowane (`jitter`, `when`, `limit.duration`, `limit.attempt.duration`) | M | F3.B.1 | #21 | `[x]` | 2026-05-09 16:01 | 2026-05-09 16:08 |
+| F3.B.3 | Reguły kategoria C/D: error taxonomy match (base ∪ tool.errors) | M | F3.B.1 | #23 | `[x]` | 2026-05-09 16:01 | 2026-05-09 16:08 |
+| F3.B.4 | Auto-przypisanie `default_timeout` (cascade Tenant → Client Org → Blueprint) | M | F3.B.1 | #28 | `[x]` | 2026-05-09 16:01 | 2026-05-09 16:08 |
+| F3.B.5 | Tests | M | F3.B.1–F3.B.4 | — | `[x]` | 2026-05-09 16:08 | 2026-05-09 16:09 |
 
 ### F3.C — Generator IR → Python (krytyczna ścieżka)
 
 | ID | Task | Delegate | Deps | Decyzja | Status | Started | Completed |
 |----|------|----------|------|---------|--------|---------|-----------|
-| F3.C.1 | Generator skeleton (Python `ast` module) — `generator/ast_builder.py` | M | F2.1 | #15 | `[ ]` | — | — |
-| F3.C.2 | Mapping dla 12 task types CNCF SW → Temporal Python (tabela L10) | M | F3.C.1 | #15 | `[ ]` | — | — |
-| F3.C.3 | Typed locals + `steps_output` dict + `_eval()` helper z compiled JQ cache | M | F3.C.1 | #15 | `[ ]` | — | — |
-| F3.C.4 | Source hash check + idempotency | M | F3.C.1 | #17 | `[ ]` | — | — |
-| F3.C.5 | Header emission (Generated from Blueprint, source hash, DO NOT EDIT) + `black` formatter | M | F3.C.1 | #14 | `[ ]` | — | — |
-| F3.C.6 | Worker Versioning Build ID assignment (`<PascalCaseId>_v<n>`, manifest update) | M | F3.C.1 | #14, #17 | `[ ]` | — | — |
-| F3.C.7 | Action item: weryfikacja libjq w Workflow Sandbox; fallback expression eval w activity | M | F3.C.3 | #15 | `[ ]` | — | — |
-| F3.C.8 | `codegen/IR_TO_PYTHON.md` | S | F3.C.1 | #14, #15 | `[ ]` | — | — |
-| F3.C.9 | Tests (golden files CNCF SW JSON → `.py` + replay test) | M | F3.C.1–F3.C.6 | — | `[ ]` | — | — |
+| F3.C.1 | Generator skeleton (Python `ast` module) — `generator/ast_builder.py` | M | F2.1 | #15 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
+| F3.C.2 | Mapping dla 12 task types CNCF SW → Temporal Python (tabela L10) | M | F3.C.1 | #15 | `[x]` (MVP: 8/12 wspierane; for/fork/listen/run jako placeholder) | 2026-05-09 16:09 | 2026-05-09 16:18 |
+| F3.C.3 | Typed locals + `steps_output` dict + `_eval()` helper z compiled JQ cache | M | F3.C.1 | #15 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
+| F3.C.4 | Source hash check + idempotency | M | F3.C.1 | #17 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
+| F3.C.5 | Header emission (Generated from Blueprint, source hash, DO NOT EDIT) + `black` formatter | M | F3.C.1 | #14 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
+| F3.C.6 | Worker Versioning Build ID assignment (`<PascalCaseId>_v<n>`, manifest update) | M | F3.C.1 | #14, #17 | `[x]` | 2026-05-09 16:09 | 2026-05-09 16:18 |
+| F3.C.7 | Action item: weryfikacja libjq w Workflow Sandbox; fallback expression eval w activity | M | F3.C.3 | #15 | `[?]` (TODO w F5 E2E z lokalnym Temporal Workerem) | — | — |
+| F3.C.8 | `codegen/IR_TO_PYTHON.md` | S | F3.C.1 | #14, #15 | `[x]` | 2026-05-09 15:42 | 2026-05-09 15:44 |
+| F3.C.9 | Tests (golden files CNCF SW JSON → `.py` + replay test) | M | F3.C.1–F3.C.6 | — | `[x]` (MVP: 11 unit testów; replay test w F5) | 2026-05-09 16:18 | 2026-05-09 16:20 |
 
 ### F3.D — Manifest builder
 
 | ID | Task | Delegate | Deps | Decyzja | Status | Started | Completed |
 |----|------|----------|------|---------|--------|---------|-----------|
-| F3.D.1 | Pydantic introspection dla Tools (in-process) → JSON Schema export | M | F2.1 | #13, #18 | `[ ]` | — | — |
-| F3.D.2 | OpenAPI pull dla Specialized Agents (`/openapi.json` fetch + parse) | M | F2.1 | #13, #18 | `[ ]` | — | — |
-| F3.D.3 | Error spec extraction (Pydantic subclasses `ApplicationError` → manifest `errors[]`) | M | F3.D.1 | #23 | `[ ]` | — | — |
-| F3.D.4 | Cascade resolution dla `default_timeout` (Tenant → Client Org → Blueprint) | M | F3.D.1 | #28 | `[ ]` | — | — |
-| F3.D.5 | `scripts/build_manifest.py` — produkuje `activities/manifest.json` | M | F3.D.1–F3.D.4 | #18 | `[ ]` | — | — |
-| F3.D.6 | Tests | M | F3.D.5 | — | `[ ]` | — | — |
+| F3.D.1 | Pydantic introspection dla Tools (in-process) → JSON Schema export | M | F2.1 | #13, #18 | `[x]` (przez `TOOL_MANIFEST` per moduł) | 2026-05-09 16:20 | 2026-05-09 16:25 |
+| F3.D.2 | OpenAPI pull dla Specialized Agents (`/openapi.json` fetch + parse) | M | F2.1 | #13, #18 | `[x]` (httpx + best-effort schema extraction) | 2026-05-09 16:20 | 2026-05-09 16:25 |
+| F3.D.3 | Error spec extraction (Pydantic subclasses `ApplicationError` → manifest `errors[]`) | M | F3.D.1 | #23 | `[x]` (errors[] w `TOOL_MANIFEST`; `base_errors()` z 7 typami) | 2026-05-09 16:20 | 2026-05-09 16:25 |
+| F3.D.4 | Cascade resolution dla `default_timeout` (Tenant → Client Org → Blueprint) | M | F3.D.1 | #28 | `[x]` (`cascade_resolve()`) | 2026-05-09 16:20 | 2026-05-09 16:25 |
+| F3.D.5 | `scripts/build_manifest.py` — produkuje `activities/manifest.json` | M | F3.D.1–F3.D.4 | #18 | `[x]` | 2026-05-09 16:20 | 2026-05-09 16:25 |
+| F3.D.6 | Tests | M | F3.D.5 | — | `[x]` (7 testów: base_errors, cascade, build, write atomic) | 2026-05-09 16:25 | 2026-05-09 16:26 |
 
 ---
 

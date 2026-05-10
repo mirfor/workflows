@@ -49,6 +49,11 @@ extend-exclude = ["generated/workflows", ".venv"]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM"]
 ignore = ["E501"]
 
+[tool.ruff.lint.per-file-ignores]
+# Testy walidatora używają nazw funkcji `test_A001_*` aby odpowiadać kodom reguł
+# walidatora — czytelność > PEP 8 N802 (function names should be lowercase).
+"tests/test_validator_rules.py" = ["N802"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
@@ -59,3 +64,23 @@ warn_redundant_casts = true
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-ra --strict-markers"
+
+[tool.coverage.run]
+source = ["ir", "mapper", "validator", "generator", "activities"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+omit = [
+    "tests/*",
+    "scripts/*",
+    "**/__init__.py",
+    "generated/*",
+]
+show_missing = true
+skip_covered = false

@@ -14,7 +14,9 @@ dist/
 .ruff_cache/
 .coverage
 .coverage.*
+coverage.xml
 htmlcov/
+.scannerwork/
 .tox/
 
 # Virtual environments

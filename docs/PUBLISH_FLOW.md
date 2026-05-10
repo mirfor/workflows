@@ -2,20 +2,25 @@
 
 **Dwa tryby:** lokalny (development, sekundy) i chmurowy (production, minuty). Pełna ścieżka: jak Agent Blueprint zaprojektowany w UI staje się działającym Workerem na Temporalu.
 
-> **Model:** GitOps. Developer pracuje lokalnie → testuje lokalnie → `git push` (świadomy krok). Push triggeruje CI/CD, który buduje obraz workera i deployuje do chmury. **Nie** ma "magicznego publish-via-UI w cloudzie" — dev decyduje kiedy promować zmiany.
+> **Model:** GitOps z separacją odpowiedzialności.
+>
+> - **Generacja kodu (`.py` z RF JSON) odbywa się TYLKO LOKALNIE** — gdy dev klika Publish w designerze. Wynik (`generated/<tenant>/workflows/*.py`, `manifest.json`) commitujemy do git.
+> - **Cloud BIERZE TO CO W GIT i pakuje do image** — bez regeneracji. Identyczność: workflow który działa lokalnie = workflow który będzie działał w cloudzie, bo to ten sam plik `.py`.
+> - **Generator nigdy nie jest wywoływany w CI ani w runtime cloudowym.** CI sprawdza idempotency (sanity gate przed merge), nie regeneruje produkcyjnych artefaktów.
 
 ## Dwa tryby — porównanie
 
 | Wymiar | **Tryb lokalny (dev)** | **Tryb chmurowy (production)** |
 |---|---|---|
 | Cel | Szybki dev cycle, smoke test po zmianach | Stabilny deploy z auditem i versioningiem |
-| Cykl Publish → działa | **5–10 sekund** | ~5 minut |
-| Persistence Blueprintu | Bezpośrednio w lokalnym katalogu (`blueprints/`, `generated/`) | Git commit + push |
-| Build / pakowanie | Brak — generator pisze `.py` na dysk | Docker build + push do Artifact Registry |
+| Cykl od kliknięcia → działa | **5–10 sekund** | ~5 minut (od `git push`) |
+| **Generacja kodu (mapper/walidator/generator)** | **TAK — uruchamiana z designera przez api/** | **NIE — bierze gotowe `.py` z git** |
+| Persistence Blueprintu | Bezpośrednio w lokalnym katalogu (`blueprints/`, `generated/`) | Git repo (commit + push przez devu) |
+| Co buduje pipeline | `.py`, `manifest.json` na dysk | Docker image (kopiuje gotowe `.py` + activities + worker.py) |
 | Worker | Proces lokalny (`python worker.py`) | Cloud Run service per Tenant |
-| Worker Versioning | Brak — restart workera po zmianie | Build ID, rolling deploy bez przerwy |
+| Worker Versioning | Brak — restart workera po zmianie | Build ID = sha krótki commit, rolling deploy |
 | Temporal | `temporal server start-dev` lokalnie | Temporal Cloud / self-hosted |
-| Co potrzebne | Python 3.12, `uv`, `temporal` CLI, Docker (opcjonalnie dla Sonara) | GCP project, Artifact Registry, Cloud Run, GitHub Actions, Temporal Cloud account |
+| Co potrzebne | Python 3.12, `uv`, `temporal` CLI | GCP project, Artifact Registry, Cloud Run, GitHub Actions, Temporal Cloud |
 
 ---
 
@@ -37,16 +42,18 @@ Brak gita, brak CI, brak Cloud Run, brak Build ID. Edycja → publish → restar
 
 ```mermaid
 flowchart LR
-    A[Dev:<br/>lokalny smoke test OK] -->|git add + commit + push| B[GitHub repo]
-    B -->|webhook| C[GitHub Actions:<br/>lint / test / compliance]
-    C -->|docker build| D[Docker image:<br/>worker.py + generated/...]
+    A[Dev:<br/>lokalny smoke test OK<br/>generated/ już ma .py] -->|git add + commit + push| B[GitHub repo<br/>z gotowym .py]
+    B -->|webhook| C[GitHub Actions:<br/>sanity gates: lint / type / test /<br/>compliance / idempotency check]
+    C -->|docker build:<br/>kopiuje gotowe .py| D[Docker image:<br/>worker.py + generated/ + activities/ + ir/]
     D -->|push| E[Artifact Registry]
     E -->|gcloud run deploy| F[Cloud Run:<br/>Worker per Tenant]
     F -->|register Build ID| G[Temporal Cloud]
     G -.->|nowe Engagementy| F
 ```
 
-**Cloud flow zaczyna się od `git push`** — czyli świadomej decyzji devu po przejściu lokalnego smoke testu. Nie ma "publish via UI" w cloudzie. ~5 minut od push do "v3 active w Cloud Run".
+**Cloud flow zaczyna się od `git push`** — czyli świadomej decyzji devu po przejściu lokalnego smoke testu. **Cloud nie regeneruje kodu** — tylko pakuje to co dev zacommitował. ~5 minut od push do "v3 active w Cloud Run".
+
+> ⚠ Cloud **nie ma endpointu publish** w api/. Promotion to git operation, nie API call.
 
 ---
 
@@ -170,12 +177,18 @@ Wtedy jedna komenda: `make dev-cycle` (lub `make dev-cycle TENANT=acme` dla inne
 
 | Krok cloud flow | Czemu pominięty lokalnie |
 |---|---|
-| Git commit | Pliki idą bezpośrednio na dysk; w lokalnym dev nie potrzebujemy historii |
-| GitHub Actions | Brak buildu — generator produkuje `.py` od ręki |
-| Docker build / image push | Worker uruchamiany jako proces Pythona, nie kontener |
+| Git commit | Pliki idą bezpośrednio na dysk; w lokalnym dev iteruje się szybko, history dochodzi gdy dev decyduje commitować |
+| GitHub Actions | Brak — `make regen` lokalnie produkuje `.py` w sekundach |
+| Docker build / image push | Worker uruchamiany jako proces Pythona z `generated/` na lokalnym dysku, nie kontener |
 | Cloud Run rolling deploy | Brak — `pkill + start` to "rolling deploy" lokalny |
 | Build ID Versioning | Tylko 1 wersja workera w danym momencie; restart = cutover |
 | Temporal Cloud | `temporal server start-dev` na localhost |
+
+**Co identyczne w obu trybach (najważniejsze):**
+
+- **Generacja `.py`** — odbywa się dokładnie tym samym kodem (`workflows/mapper`, `workflows/validator`, `workflows/generator`) lokalnie. Cloud nie generuje, tylko bierze gotowy plik z git.
+- **Worker code path** — `worker.py` ten sam lokalnie i w cloudzie; różni się tylko skąd ładuje manifest (lokalny dysk vs `/app/generated/...` w kontenerze).
+- **Temporal protocol** — gRPC do Temporal Server; lokalnie `localhost:7233`, w cloudzie Temporal Cloud endpoint.
 
 ### Compromise: brak rolling deployu lokalnie
 
@@ -227,9 +240,10 @@ sequenceDiagram
     participant CR as Cloud Run<br/>(Worker per Tenant)
     participant Temp as Temporal Cloud
 
-    Note over Dev,Local: Lokalnie zweryfikowane:<br/>make regen + restart worker<br/>+ start_workflow zwrócił poprawny wynik
+    Note over Dev,Local: Lokalnie zweryfikowane (`make dev-cycle`):<br/>1. mapper + walidator + generator wyprodukowały:<br/>   blueprints/<t>/<bp>/v<n>/cncf-sw.json<br/>   generated/<t>/workflows/<id>__v<n>.py<br/>   generated/<t>/manifest.json (active_version=v<n>)<br/>2. Worker uruchomiony z nowym kodem<br/>3. start_workflow zwrócił poprawny wynik
 
-    Dev->>Local: git add blueprints/ generated/<br/>git commit -m "Publish acme/onboarding v3"
+    Dev->>Local: git add blueprints/ generated/<br/>(cały build-time output już na dysku)
+    Dev->>Local: git commit -m "Publish acme/onboarding v3"
     Dev->>GH: git push origin main
     GH-->>Dev: push OK, sha=abc1234
 
@@ -237,14 +251,17 @@ sequenceDiagram
     activate CI
     CI->>CI: checkout
     CI->>CI: uv sync --all-extras
+
+    Note over CI: Sanity gates (NIE regeneracja produkcji):<br/>lint, type, pytest, compliance, codegen-idempotency
     CI->>CI: ruff check, mypy, pytest<br/>(compliance gate: 34 testy)
-    CI->>CI: codegen idempotency:<br/>regenerate_all → diff(generated/) == empty?
+    CI->>CI: codegen-idempotency SANITY:<br/>regenerate_all → diff(generated/) == empty?<br/>(weryfikuje że to co w git jest aktualne)
 
     alt którykolwiek check fail
         CI-->>Dev: red ❌ (PR comment / email)
-        Note over Dev: dev naprawia, kolejny push
+        Note over Dev: dev lokalnie naprawia, regenuje, push
     else wszystko green
-        CI->>CI: docker build<br/>image:abc1234 = worker.py + generated/<acme>/...
+        Note over CI: Docker build = KOPIOWANIE,<br/>nie regeneracja
+        CI->>CI: docker build image:abc1234<br/>COPY generated/<acme>/ ./generated/<acme>/<br/>COPY activities/, worker.py, ir/<br/>(NIE COPY mapper/, validator/, generator/, scripts/)
         CI->>AR: docker push gcr.io/.../weaver-worker-acme:abc1234
 
         CI->>CR: gcloud run deploy weaver-worker-acme<br/>--image=...:abc1234<br/>--update-env-vars TEMPORAL_BUILD_ID=abc1234
@@ -273,6 +290,63 @@ sequenceDiagram
 | 10-13 (Cloud Run deploy + Temporal register) | 30-90s |
 | **Razem od `git push` do "v3 active w Cloud Run"** | **≈ 5 min** |
 
+### Co dokładnie robi Docker build w CI
+
+Build to **kopiowanie**, nie generacja. Dockerfile:
+
+```dockerfile
+FROM python:3.12-slim
+WORKDIR /app
+
+# 1. Zależności runtime (uv frozen lock)
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+# 2. Już-wygenerowany kod workflow per Tenant + activities + worker
+COPY generated/ ./generated/      # gotowe .py z lokalnej generacji
+COPY activities/ ./activities/    # Tools + Specialized Agents dispatcher
+COPY worker.py ./
+COPY ir/ ./ir/                    # Pydantic models — workflow runtime importuje
+
+# NIE kopiujemy build-time tools:
+#   mapper/ — używane tylko przy publish (lokalnie)
+#   validator/ — j.w.
+#   generator/ — j.w.
+#   scripts/ — CLI entrypointy build-time
+# Worker ich nie potrzebuje w runtime.
+
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "worker.py"]
+CMD ["--tenant", "${TENANT}"]
+```
+
+**Generator nie istnieje w produkcyjnym image.** Worker tylko czyta `generated/<tenant>/manifest.json` + importuje wskazane pliki `.py`.
+
+### Codegen-idempotency check w CI — sanity, nie deploy step
+
+Job `codegen-idempotency` w CI:
+
+```yaml
+codegen-idempotency:
+  steps:
+    - checkout
+    - uv sync --all-extras
+    - run: uv run python -m scripts.regenerate_all
+    - run: |
+        if ! git diff --quiet generated/; then
+          echo "ERROR: codegen is not idempotent — generated/ changed"
+          git diff generated/
+          exit 1
+        fi
+```
+
+Cel: **wykryć desynchronizację** między tym co dev zacommitował a tym co generator by wyprodukował **teraz**. Łapie scenariusze:
+- Dev zmienił `blueprints/<t>/<bp>/v<n>/reactflow.json` ale zapomniał `make regen` przed commit
+- Ktoś ręcznie zmodyfikował `generated/<t>/workflows/<id>__v<n>.py` (naruszone "DO NOT EDIT")
+- Bug w generatorze produkujący niedeterministyczny output
+
+To job **przed merge**. Po przejściu, **build-image NIE woła generatora**. Bierze co jest w git.
+
 ### Dlaczego dev push do gita zamiast UI publish
 
 | Argument | Szczegół |
@@ -283,6 +357,7 @@ sequenceDiagram
 | Rollback | `git revert` + push → CI buduje stary stan, deploy = rollback |
 | GitOps standard | Wszystkie zmiany infrastruktury / kodu przez git, jeden mental model |
 | Nie ma "live UI publishing prod" | Mniejsze ryzyko że ktoś przez przypadek wypchnie zmianę na prod |
+| **Identyczność lokalne ↔ produkcja** | Workflow który działa lokalnie = ten sam plik `.py` w produkcji. Brak ryzyka "działa u mnie, nie działa w produkcji" — bo generator w produkcji nie istnieje |
 
 ---
 

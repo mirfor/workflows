@@ -1,0 +1,18 @@
+[
+  {
+    "name": "posting_recommendation",
+    "endpoint_url": "http://localhost:8600",
+    "operation": "recommend",
+    "openapi_url": "http://localhost:8600/openapi.json",
+    "allowed_tenants": [],
+    "description": "AI-powered social media post recommendation"
+  },
+  {
+    "name": "data_transform",
+    "endpoint_url": "http://localhost:8700",
+    "operation": "transform",
+    "openapi_url": "http://localhost:8700/openapi.json",
+    "allowed_tenants": ["acme", "demo"],
+    "description": "WCL-based data transform agent (tenant-restricted)"
+  }
+]

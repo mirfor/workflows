@@ -63,12 +63,22 @@ def update_manifest(
         {"active_version": None, "deprecated_versions": [], "versions": {}},
     )
 
+    # Idempotency — jeśli istniejący wpis ma ten sam source_hash, zachowaj jego
+    # `generated_at` i `build_id` (CI codegen-idempotency check sprawdza czy git diff jest empty).
+    existing = bp["versions"].get(gen.version) or {}
+    if existing.get("source_hash") == gen.source_hash:
+        preserved_generated_at = existing.get("generated_at", generated_at)
+        preserved_build_id = existing.get("build_id", build_id)
+    else:
+        preserved_generated_at = generated_at
+        preserved_build_id = build_id
+
     bp["versions"][gen.version] = {
         "file_path": gen.relative_path,
         "class_name": gen.class_name,
         "source_hash": gen.source_hash,
-        "build_id": build_id,
-        "generated_at": generated_at,
+        "build_id": preserved_build_id,
+        "generated_at": preserved_generated_at,
     }
 
     if activate:

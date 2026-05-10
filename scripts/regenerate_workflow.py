@@ -14,14 +14,23 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
-from generator import generate, manifest_path_for, update_manifest
+from generator import compute_source_hash, generate, manifest_path_for, update_manifest
 from mapper import map_reactflow_to_cncfsw
 from validator import apply_default_timeout, validate
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+# Idempotency — gdy source_hash istniejącego `.py` matches obliczonego z aktualnego IR,
+# nie regenerujemy pliku (zachowanie pierwotnego `generated_at` w headerze).
+# Wzorzec dopasowuje "Source hash: <sha>" + "at <iso8601>" w headerze pliku.
+_HEADER_HASH_RE = re.compile(r"^# Source hash:\s*([0-9a-f]+)\s*$", re.MULTILINE)
+_HEADER_TS_RE = re.compile(
+    r"^# Generated from Blueprint .+? at (?P<ts>[0-9T:+\-]+)\s*$", re.MULTILINE
+)
 
 
 def _resolve_tenant_from_path(rf_path: Path) -> tuple[str, str, str]:
@@ -41,8 +50,28 @@ def _resolve_tenant_from_path(rf_path: Path) -> tuple[str, str, str]:
     return tenant_id, blueprint_dir, version
 
 
+def _existing_timestamp_if_hash_matches(py_path: Path, expected_hash: str) -> str | None:
+    """Czytaj header istniejącego `.py`. Jeśli source_hash matches, zwróć stary timestamp.
+
+    Idempotency: niezmieniony IR → nie zmieniamy `generated_at` (CI codegen-idempotency check).
+    """
+    if not py_path.exists():
+        return None
+    content = py_path.read_text(encoding="utf-8")
+    hash_m = _HEADER_HASH_RE.search(content)
+    ts_m = _HEADER_TS_RE.search(content)
+    if hash_m and ts_m and hash_m.group(1) == expected_hash:
+        return ts_m.group("ts")
+    return None
+
+
 def regenerate(rf_path: Path, *, activate: bool = True) -> dict[str, str | list[str]]:
-    """Pełen pipeline dla pojedynczego Blueprint × wersja. Zwraca dict z paths."""
+    """Pełen pipeline dla pojedynczego Blueprint × wersja. Zwraca dict z paths.
+
+    Idempotentny: jeśli IR ma ten sam source_hash co istniejący `.py`, zachowujemy
+    pierwotny `generated_at` (zarówno w headerze pliku jak i w manifeście) — pliki
+    zostają byte-identyczne, CI codegen-idempotency check przechodzi.
+    """
     tenant_id, _bp_dir_name, _version = _resolve_tenant_from_path(rf_path)
     rf = json.loads(rf_path.read_text("utf-8"))
 
@@ -66,18 +95,35 @@ def regenerate(rf_path: Path, *, activate: bool = True) -> dict[str, str | list[
         encoding="utf-8",
     )
 
-    # 5. Generate `.py` per Tenant
-    ts = datetime.now(tz=UTC)
-    gen = generate(workflow, tenant_id=tenant_id, generated_at=ts)
-    py_path = REPO_ROOT / gen.relative_path
-    py_path.parent.mkdir(parents=True, exist_ok=True)
-    py_path.write_text(gen.source, encoding="utf-8")
+    # 5. Compute source hash before generate, sprawdź idempotency
+    new_hash = compute_source_hash(workflow)
+    py_path = REPO_ROOT / "generated" / tenant_id / "workflows"
+    py_path.mkdir(parents=True, exist_ok=True)
 
-    # 6. Update manifest per Tenant
+    # _to_snake nazywa: weaver-style "hello_world" → "hello_world__v1.py"
+    # Rekonstrukcja sciezki bez wywoływania `generate()` — używamy tego samego algorytmu
+    snake = re.sub(r"[^a-zA-Z0-9]+", "_", workflow.document.name).strip("_").lower()
+    py_full_path = py_path / f"{snake}__v{workflow.document.version}.py"
+
+    existing_ts = _existing_timestamp_if_hash_matches(py_full_path, new_hash)
+    if existing_ts is not None:
+        ts_str = existing_ts
+        ts = datetime.fromisoformat(existing_ts)
+    else:
+        ts = datetime.now(tz=UTC)
+        ts_str = ts.isoformat(timespec="seconds")
+
+    # 6. Generate `.py` per Tenant z deterministic timestamp
+    gen = generate(workflow, tenant_id=tenant_id, generated_at=ts)
+    target_path = REPO_ROOT / gen.relative_path
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(gen.source, encoding="utf-8")
+
+    # 7. Update manifest per Tenant z deterministic timestamp
     update_manifest(
         manifest_path_for(REPO_ROOT, tenant_id), gen,
-        build_id=None,  # CI ustala (sha krótki commit)
-        generated_at=ts.isoformat(timespec="seconds"),
+        build_id=None,
+        generated_at=ts_str,
         activate=activate,
     )
 

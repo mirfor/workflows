@@ -8,9 +8,7 @@ from typing import Annotated, Any
 from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
 
 # Rust regex nie wspiera lookaround — split na osobny pattern + funkcyjny check non-empty body.
-_ISO_DURATION_RE = re.compile(
-    r"^P(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(\d+H)?(\d+M)?(\d+(?:\.\d+)?S)?)?$"
-)
+_ISO_DURATION_RE = re.compile(r"^P(\d+Y)?(\d+M)?(\d+W)?(\d+D)?(T(\d+H)?(\d+M)?(\d+(?:\.\d+)?S)?)?$")
 
 
 def _validate_iso_duration(v: str) -> str:

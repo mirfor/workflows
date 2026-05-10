@@ -34,9 +34,13 @@ def test_switch_owned_branch_nodes_removed_from_top_level() -> None:
         "meta": _meta(),
         "nodes": [
             {"id": "trg", "type": "manual_trigger", "data": {}},
-            {"id": "sw", "type": "switch", "data": {
-                "cases": [{"id": "vip", "when": ".tier == \"vip\""}],
-            }},
+            {
+                "id": "sw",
+                "type": "switch",
+                "data": {
+                    "cases": [{"id": "vip", "when": '.tier == "vip"'}],
+                },
+            },
             {"id": "vip_path", "type": "set", "data": {"assignments": {"x": 1}}},
             {"id": "vip_emit", "type": "emit", "data": {"event": {"k": "vip"}}},
             {"id": "default_path", "type": "set", "data": {"assignments": {"y": 1}}},
@@ -63,9 +67,13 @@ def test_switch_case_do_contains_branch_sequence() -> None:
         "meta": _meta(),
         "nodes": [
             {"id": "trg", "type": "manual_trigger", "data": {}},
-            {"id": "sw", "type": "switch", "data": {
-                "cases": [{"id": "a", "when": "true"}],
-            }},
+            {
+                "id": "sw",
+                "type": "switch",
+                "data": {
+                    "cases": [{"id": "a", "when": "true"}],
+                },
+            },
             {"id": "step1", "type": "set", "data": {"assignments": {"a": 1}}},
             {"id": "step2", "type": "set", "data": {"assignments": {"b": 2}}},
         ],
@@ -158,18 +166,23 @@ def test_try_with_multi_catch_compiles_to_switch_in_catch_do() -> None:
         "meta": _meta(),
         "nodes": [
             {"id": "trg", "type": "manual_trigger", "data": {}},
-            {"id": "wrap", "type": "try", "data": {
-                "catches": [
-                    {"errorType": "ValidationError", "as": "err", "do": ["recover_v"]},
-                    {"errorType": "AuthError", "as": "err", "do": ["recover_a"]},
-                ],
-            }},
-            {"id": "risky", "type": "set", "parentNode": "wrap",
-             "data": {"assignments": {"x": 1}}},
-            {"id": "recover_v", "type": "set",
-             "data": {"assignments": {"recovered": "validation"}}},
-            {"id": "recover_a", "type": "set",
-             "data": {"assignments": {"recovered": "auth"}}},
+            {
+                "id": "wrap",
+                "type": "try",
+                "data": {
+                    "catches": [
+                        {"errorType": "ValidationError", "as": "err", "do": ["recover_v"]},
+                        {"errorType": "AuthError", "as": "err", "do": ["recover_a"]},
+                    ],
+                },
+            },
+            {"id": "risky", "type": "set", "parentNode": "wrap", "data": {"assignments": {"x": 1}}},
+            {
+                "id": "recover_v",
+                "type": "set",
+                "data": {"assignments": {"recovered": "validation"}},
+            },
+            {"id": "recover_a", "type": "set", "data": {"assignments": {"recovered": "auth"}}},
         ],
         "edges": [
             {"id": "e1", "source": "trg", "target": "wrap"},
@@ -192,13 +205,25 @@ def test_try_container_body_is_built_from_parent_node() -> None:
         "meta": _meta(),
         "nodes": [
             {"id": "trg", "type": "manual_trigger", "data": {}},
-            {"id": "wrap", "type": "try", "data": {
-                "catches": [{"errorType": "ValidationError", "do": ["log"]}],
-            }},
-            {"id": "inner1", "type": "set", "parentNode": "wrap",
-             "data": {"assignments": {"a": 1}}},
-            {"id": "inner2", "type": "set", "parentNode": "wrap",
-             "data": {"assignments": {"b": 2}}},
+            {
+                "id": "wrap",
+                "type": "try",
+                "data": {
+                    "catches": [{"errorType": "ValidationError", "do": ["log"]}],
+                },
+            },
+            {
+                "id": "inner1",
+                "type": "set",
+                "parentNode": "wrap",
+                "data": {"assignments": {"a": 1}},
+            },
+            {
+                "id": "inner2",
+                "type": "set",
+                "parentNode": "wrap",
+                "data": {"assignments": {"b": 2}},
+            },
             {"id": "log", "type": "set", "data": {"assignments": {"logged": True}}},
         ],
         "edges": [
@@ -220,8 +245,7 @@ def test_unknown_parent_node_rejected() -> None:
     rf = {
         "meta": _meta(),
         "nodes": [
-            {"id": "n1", "type": "set", "parentNode": "ghost",
-             "data": {"assignments": {}}},
+            {"id": "n1", "type": "set", "parentNode": "ghost", "data": {"assignments": {}}},
         ],
         "edges": [],
     }
@@ -235,8 +259,7 @@ def test_parent_node_must_be_container_type() -> None:
         "meta": _meta(),
         "nodes": [
             {"id": "sw", "type": "switch", "data": {"cases": []}},
-            {"id": "n1", "type": "set", "parentNode": "sw",
-             "data": {"assignments": {}}},
+            {"id": "n1", "type": "set", "parentNode": "sw", "data": {"assignments": {}}},
         ],
         "edges": [],
     }
@@ -284,8 +307,11 @@ def test_schedule_trigger_persisted_with_cron() -> None:
     rf = {
         "meta": _meta(),
         "nodes": [
-            {"id": "trg", "type": "schedule_trigger",
-             "data": {"cron": "0 9 * * 1-5", "timezone": "Europe/Warsaw"}},
+            {
+                "id": "trg",
+                "type": "schedule_trigger",
+                "data": {"cron": "0 9 * * 1-5", "timezone": "Europe/Warsaw"},
+            },
             {"id": "n1", "type": "set", "data": {"assignments": {}}},
         ],
         "edges": [{"id": "e1", "source": "trg", "target": "n1"}],
@@ -301,9 +327,15 @@ def test_event_trigger_with_filter() -> None:
     rf = {
         "meta": _meta(),
         "nodes": [
-            {"id": "trg", "type": "event_trigger",
-             "data": {"source": "stripe", "eventType": "payment.succeeded",
-                      "filter": ".amount > 1000"}},
+            {
+                "id": "trg",
+                "type": "event_trigger",
+                "data": {
+                    "source": "stripe",
+                    "eventType": "payment.succeeded",
+                    "filter": ".amount > 1000",
+                },
+            },
             {"id": "n1", "type": "set", "data": {"assignments": {}}},
         ],
         "edges": [{"id": "e1", "source": "trg", "target": "n1"}],
@@ -322,17 +354,23 @@ def test_meta_use_passes_through_to_workflow() -> None:
     """meta.use → workflow.use (functions, retries, timeouts) bez utraty pól."""
     use_data = {
         "functions": {
-            "f": {"name": "f", "type": "weaver_tool", "module": "m", "operation": "o",
-                  "errors": [{"type": "ValidationError", "is_base": True, "retryable": False}]},
+            "f": {
+                "name": "f",
+                "type": "weaver_tool",
+                "module": "m",
+                "operation": "o",
+                "errors": [{"type": "ValidationError", "is_base": True, "retryable": False}],
+            },
         },
         "retries": {
-            "r1": {"delay": "PT2S",
-                   "backoff": {"exponential": {"multiplier": 1.5}},
-                   "limit": {"attempt": {"count": 5}}},
+            "r1": {
+                "delay": "PT2S",
+                "backoff": {"exponential": {"multiplier": 1.5}},
+                "limit": {"attempt": {"count": 5}},
+            },
         },
         "timeouts": {
-            "t1": {"after": "PT3M",
-                   "metadata": {"temporal": {"heartbeat": "PT15S"}}},
+            "t1": {"after": "PT3M", "metadata": {"temporal": {"heartbeat": "PT15S"}}},
         },
     }
     rf = {

@@ -56,6 +56,9 @@ def _trigger_discriminator(v: Any) -> str | None:
 
 
 Trigger = Annotated[
-    Annotated[ManualTrigger, Tag("manual_trigger")] | Annotated[WebhookTrigger, Tag("webhook_trigger")] | Annotated[ScheduleTrigger, Tag("schedule_trigger")] | Annotated[EventTrigger, Tag("event_trigger")],
+    Annotated[ManualTrigger, Tag("manual_trigger")]
+    | Annotated[WebhookTrigger, Tag("webhook_trigger")]
+    | Annotated[ScheduleTrigger, Tag("schedule_trigger")]
+    | Annotated[EventTrigger, Tag("event_trigger")],
     Discriminator(_trigger_discriminator),
 ]

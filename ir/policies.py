@@ -14,7 +14,9 @@ from ir._base import IsoDuration, JqExpression, StrictModel
 
 
 class BackoffExponential(StrictModel):
-    multiplier: float = Field(..., gt=0, description="Backoff coefficient (Temporal: backoff_coefficient).")
+    multiplier: float = Field(
+        ..., gt=0, description="Backoff coefficient (Temporal: backoff_coefficient)."
+    )
 
 
 class BackoffConstant(StrictModel):

@@ -90,7 +90,9 @@ def regenerate(rf_path: Path, *, activate: bool = True) -> dict[str, str | list[
     # 4. Save IR JSON next to RF JSON
     ir_path = rf_path.with_name("cncf-sw.json")
     ir_path.write_text(
-        json.dumps(workflow.model_dump(by_alias=True, exclude_none=True), indent=2, ensure_ascii=False)
+        json.dumps(
+            workflow.model_dump(by_alias=True, exclude_none=True), indent=2, ensure_ascii=False
+        )
         + "\n",
         encoding="utf-8",
     )
@@ -121,7 +123,8 @@ def regenerate(rf_path: Path, *, activate: bool = True) -> dict[str, str | list[
 
     # 7. Update manifest per Tenant z deterministic timestamp
     update_manifest(
-        manifest_path_for(REPO_ROOT, tenant_id), gen,
+        manifest_path_for(REPO_ROOT, tenant_id),
+        gen,
         build_id=None,
         generated_at=ts_str,
         activate=activate,

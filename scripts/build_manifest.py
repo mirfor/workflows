@@ -63,7 +63,9 @@ def cascade_resolve(
     for lv in levels:
         result = CascadeDefaults(
             default_start_to_close=lv.default_start_to_close or result.default_start_to_close,
-            default_heartbeat=lv.default_heartbeat if lv.default_heartbeat is not None else result.default_heartbeat,
+            default_heartbeat=lv.default_heartbeat
+            if lv.default_heartbeat is not None
+            else result.default_heartbeat,
             default_schedule_to_close=lv.default_schedule_to_close
             if lv.default_schedule_to_close is not None
             else result.default_schedule_to_close,
@@ -139,7 +141,9 @@ def discover_specialized_agents(timeout_seconds: float = 5.0) -> list[dict[str, 
     return agents
 
 
-def _extract_request_schema(openapi: dict[str, Any], operation_id: str | None) -> dict[str, Any] | None:
+def _extract_request_schema(
+    openapi: dict[str, Any], operation_id: str | None
+) -> dict[str, Any] | None:
     """Best-effort wyciągnięcie request body schema dla operationId."""
     if not operation_id:
         return None
@@ -153,7 +157,9 @@ def _extract_request_schema(openapi: dict[str, Any], operation_id: str | None) -
     return None
 
 
-def _extract_response_schema(openapi: dict[str, Any], operation_id: str | None) -> dict[str, Any] | None:
+def _extract_response_schema(
+    openapi: dict[str, Any], operation_id: str | None
+) -> dict[str, Any] | None:
     """Best-effort wyciągnięcie 200/201 response schema dla operationId."""
     if not operation_id:
         return None
@@ -206,12 +212,16 @@ def build_manifest(
                     k: v
                     for k, v in (
                         ("heartbeat", (cascade or CascadeDefaults()).default_heartbeat),
-                        ("schedule_to_close", (cascade or CascadeDefaults()).default_schedule_to_close),
+                        (
+                            "schedule_to_close",
+                            (cascade or CascadeDefaults()).default_schedule_to_close,
+                        ),
                     )
                     if v
                 }
-            } if (cascade or CascadeDefaults()).default_heartbeat
-                  or (cascade or CascadeDefaults()).default_schedule_to_close
+            }
+            if (cascade or CascadeDefaults()).default_heartbeat
+            or (cascade or CascadeDefaults()).default_schedule_to_close
             else None,
         },
         "tools": discover_tools(),

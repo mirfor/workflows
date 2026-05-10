@@ -31,7 +31,9 @@ def build_schema() -> dict:
 def main() -> None:
     schema = build_schema()
     SCHEMA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    SCHEMA_PATH.write_text(json.dumps(schema, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    SCHEMA_PATH.write_text(
+        json.dumps(schema, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"Wrote {SCHEMA_PATH} ({SCHEMA_PATH.stat().st_size} bytes)")
 
 

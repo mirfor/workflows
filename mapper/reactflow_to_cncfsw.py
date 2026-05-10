@@ -78,13 +78,17 @@ def map_reactflow_to_cncfsw(rf: dict[str, Any]) -> Workflow:
     branch_owners = _compute_branch_ownership(nodes_by_id, outgoing)
 
     top_level_ids = [
-        nid for nid, n in nodes_by_id.items()
-        if n.get("parentNode") is None
-        and nid != trigger_node_id
-        and nid not in branch_owners
+        nid
+        for nid, n in nodes_by_id.items()
+        if n.get("parentNode") is None and nid != trigger_node_id and nid not in branch_owners
     ]
     do = _build_sequence(
-        top_level_ids, nodes_by_id, edges, outgoing, parent_index, trigger_node_id,
+        top_level_ids,
+        nodes_by_id,
+        edges,
+        outgoing,
+        parent_index,
+        trigger_node_id,
         branch_owners=branch_owners,
     )
 
@@ -151,9 +155,7 @@ def _validate_preconditions(
     if not meta.get("name"):
         raise MapperError("RF JSON `meta.name` jest wymagane.")
 
-    triggers = [
-        nid for nid, n in nodes_by_id.items() if n.get("type") in TRIGGER_TYPES
-    ]
+    triggers = [nid for nid, n in nodes_by_id.items() if n.get("type") in TRIGGER_TYPES]
     if len(triggers) > 1:
         raise MapperError(f"Więcej niż jeden trigger node: {triggers}.")
     if triggers and incoming.get(triggers[0]):
@@ -186,7 +188,9 @@ def _find_trigger(
     return None
 
 
-def _build_trigger(node: dict[str, Any]) -> ManualTrigger | WebhookTrigger | ScheduleTrigger | EventTrigger:
+def _build_trigger(
+    node: dict[str, Any],
+) -> ManualTrigger | WebhookTrigger | ScheduleTrigger | EventTrigger:
     data = node.get("data") or {}
     t = node["type"]
     if t == "manual_trigger":
@@ -274,9 +278,7 @@ def _compute_branch_ownership(
             for handler_id in c.get("do") or []:
                 if handler_id in nodes_by_id:
                     label = f"{try_id}:catch_{ci}_{handler_id}"
-                    case_reach[label] = _bfs_excluding_switches(
-                        handler_id, outgoing, nodes_by_id
-                    )
+                    case_reach[label] = _bfs_excluding_switches(handler_id, outgoing, nodes_by_id)
 
     # Każdy node przypisany do swojego owner-a tylko jeśli należy do dokładnie 1 case
     ownership: dict[str, str] = {}
@@ -338,9 +340,7 @@ def _topological_order(
                 trigger_targets.append(e["target"])
 
     initial = [nid for nid in trigger_targets if indeg[nid] == 0]
-    other_zero = sorted(
-        nid for nid, d in indeg.items() if d == 0 and nid not in initial
-    )
+    other_zero = sorted(nid for nid, d in indeg.items() if d == 0 and nid not in initial)
     queue = initial + other_zero
 
     seen: set[str] = set()

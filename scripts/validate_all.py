@@ -35,7 +35,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Bulk validate all Blueprints (multi-tenant).")
     parser.add_argument("--tenant", help="Filtruj per Tenant ID")
     parser.add_argument("--blueprint", help="Filtruj per Blueprint ID (wymaga --tenant)")
-    parser.add_argument("--strict", action="store_true", help="Warningi też powodują niezerowy exit")
+    parser.add_argument(
+        "--strict", action="store_true", help="Warningi też powodują niezerowy exit"
+    )
     args = parser.parse_args()
 
     if args.blueprint and not args.tenant:
@@ -71,12 +73,17 @@ def main() -> None:
             error_count += 1
             print(f"✗ {rf.relative_to(REPO_ROOT)}: {exc}", file=sys.stderr)
 
-    print(json.dumps({
-        "blueprints": len(files),
-        "errors": error_count,
-        "warnings": warning_count,
-        "strict": args.strict,
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "blueprints": len(files),
+                "errors": error_count,
+                "warnings": warning_count,
+                "strict": args.strict,
+            },
+            indent=2,
+        )
+    )
 
     if args.strict and warning_count > 0:
         sys.exit(error_count + warning_count)

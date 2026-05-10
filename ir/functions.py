@@ -53,6 +53,7 @@ def _function_discriminator(v: Any) -> str | None:
 
 
 FunctionDefinition = Annotated[
-    Annotated[ToolFunction, Tag("weaver_tool")] | Annotated[SpecializedAgentFunction, Tag("weaver_specialized_agent")],
+    Annotated[ToolFunction, Tag("weaver_tool")]
+    | Annotated[SpecializedAgentFunction, Tag("weaver_specialized_agent")],
     Discriminator(_function_discriminator),
 ]

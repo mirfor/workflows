@@ -45,8 +45,7 @@ def _load_active_workflow_classes(tenant_id: str) -> list[type]:
     manifest: dict[str, Any] = json.loads(manifest_path.read_text("utf-8"))
     if manifest.get("tenant_id") and manifest["tenant_id"] != tenant_id:
         raise RuntimeError(
-            f"Manifest tenant_id mismatch: file={manifest['tenant_id']!r}, "
-            f"requested={tenant_id!r}"
+            f"Manifest tenant_id mismatch: file={manifest['tenant_id']!r}, requested={tenant_id!r}"
         )
 
     classes: list[type] = []
@@ -78,8 +77,9 @@ def _load_active_workflow_classes(tenant_id: str) -> list[type]:
             logger.error("Klasa %s nie istnieje w %s.", class_name, file_path)
             continue
         classes.append(cls)
-        logger.info("Załadowano workflow %s/%s v%s (class=%s)",
-                    tenant_id, blueprint_id, active, class_name)
+        logger.info(
+            "Załadowano workflow %s/%s v%s (class=%s)", tenant_id, blueprint_id, active, class_name
+        )
 
     return classes
 
@@ -96,7 +96,8 @@ async def run_worker(
     workflow_classes = _load_active_workflow_classes(tenant_id)
 
     sandbox_restrictions = SandboxRestrictions.default.with_passthrough_modules(
-        "activities", "jq",
+        "activities",
+        "jq",
     )
 
     worker_kwargs: dict[str, Any] = {
@@ -112,8 +113,13 @@ async def run_worker(
     logger.info(
         "Worker startuje: tenant=%s target=%s namespace=%s queue=%s "
         "workflows=%d activities=%d build_id=%s",
-        tenant_id, target_url, namespace, task_queue,
-        len(workflow_classes), len(ALL_ACTIVITIES), build_id,
+        tenant_id,
+        target_url,
+        namespace,
+        task_queue,
+        len(workflow_classes),
+        len(ALL_ACTIVITIES),
+        build_id,
     )
     await worker.run()
 
@@ -146,13 +152,15 @@ def main() -> None:
     namespace = args.namespace or args.tenant
     task_queue = args.task_queue or f"weaver-{args.tenant}"
 
-    asyncio.run(run_worker(
-        tenant_id=args.tenant,
-        target_url=args.target,
-        namespace=namespace,
-        task_queue=task_queue,
-        build_id=args.build_id,
-    ))
+    asyncio.run(
+        run_worker(
+            tenant_id=args.tenant,
+            target_url=args.target,
+            namespace=namespace,
+            task_queue=task_queue,
+            build_id=args.build_id,
+        )
+    )
 
 
 if __name__ == "__main__":

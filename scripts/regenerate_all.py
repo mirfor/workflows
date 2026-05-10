@@ -26,9 +26,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 BLUEPRINTS_DIR = REPO_ROOT / "blueprints"
 
 
-def discover_rf_files(
-    tenant: str | None = None, blueprint: str | None = None
-) -> list[Path]:
+def discover_rf_files(tenant: str | None = None, blueprint: str | None = None) -> list[Path]:
     """Znajdź wszystkie `reactflow.json` w layoutcie multi-tenant."""
     rf_files: list[Path] = []
     if not BLUEPRINTS_DIR.exists():
@@ -77,8 +75,10 @@ def main() -> None:
         try:
             result = regenerate(rf, activate=not args.no_activate)
             successes.append(result)
-            print(f"✓ {result['tenant_id']}/{result['blueprint_id']} v{result['version']} "
-                  f"hash={result['source_hash'][:16]}...")
+            print(
+                f"✓ {result['tenant_id']}/{result['blueprint_id']} v{result['version']} "
+                f"hash={result['source_hash'][:16]}..."
+            )
         except SystemExit as exc:
             failures.append((rf, str(exc)))
             print(f"✗ {rf}: {exc}", file=sys.stderr)
@@ -86,12 +86,17 @@ def main() -> None:
             failures.append((rf, repr(exc)))
             print(f"✗ {rf}: {exc!r}", file=sys.stderr)
 
-    print(json.dumps({
-        "ok": len(successes),
-        "failed": len(failures),
-        "tenant_filter": args.tenant,
-        "blueprint_filter": args.blueprint,
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "ok": len(successes),
+                "failed": len(failures),
+                "tenant_filter": args.tenant,
+                "blueprint_filter": args.blueprint,
+            },
+            indent=2,
+        )
+    )
 
     sys.exit(len(failures))
 

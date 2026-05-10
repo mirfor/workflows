@@ -235,7 +235,17 @@ def _task_discriminator(v: Any) -> str | None:
     a discriminator musi zwrócić bardziej-specific tag dla nich.
     """
     discriminator_order = (
-        "call", "for", "fork", "switch", "try", "wait", "listen", "emit", "raise", "run", "set",
+        "call",
+        "for",
+        "fork",
+        "switch",
+        "try",
+        "wait",
+        "listen",
+        "emit",
+        "raise",
+        "run",
+        "set",
         "do",  # last resort — czysty DoTask
     )
     if not isinstance(v, dict):
@@ -251,7 +261,18 @@ def _task_discriminator(v: Any) -> str | None:
 
 
 Task = Annotated[  # type: ignore[misc]
-    Annotated[CallTask, Tag("call")] | Annotated[DoTask, Tag("do")] | Annotated[ForTask, Tag("for")] | Annotated[ForkTask, Tag("fork")] | Annotated[SwitchTask, Tag("switch")] | Annotated[TryTask, Tag("try")] | Annotated[WaitTask, Tag("wait")] | Annotated[ListenTask, Tag("listen")] | Annotated[EmitTask, Tag("emit")] | Annotated[RaiseTask, Tag("raise")] | Annotated[RunTask, Tag("run")] | Annotated[SetTask, Tag("set")],
+    Annotated[CallTask, Tag("call")]
+    | Annotated[DoTask, Tag("do")]
+    | Annotated[ForTask, Tag("for")]
+    | Annotated[ForkTask, Tag("fork")]
+    | Annotated[SwitchTask, Tag("switch")]
+    | Annotated[TryTask, Tag("try")]
+    | Annotated[WaitTask, Tag("wait")]
+    | Annotated[ListenTask, Tag("listen")]
+    | Annotated[EmitTask, Tag("emit")]
+    | Annotated[RaiseTask, Tag("raise")]
+    | Annotated[RunTask, Tag("run")]
+    | Annotated[SetTask, Tag("set")],
     Discriminator(_task_discriminator),
 ]
 
@@ -262,6 +283,12 @@ NamedTask = dict[str, Task]  # type: ignore[misc]
 
 # Wymuszenie rebuild dla każdego task type (bo używają NamedTask w forward).
 for _cls in (
-    DoTask, ForTask, ForkTask, TryTask, TryCatch, ListenTask, _SwitchCase,
+    DoTask,
+    ForTask,
+    ForkTask,
+    TryTask,
+    TryCatch,
+    ListenTask,
+    _SwitchCase,
 ):
     _cls.model_rebuild(_types_namespace={"Task": Task, "NamedTask": NamedTask})

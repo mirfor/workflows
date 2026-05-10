@@ -160,27 +160,21 @@ def _build_imports(workflow: Workflow) -> list[ast.stmt]:
         ast.parse("from typing import Any").body[0],
         ast.parse("import jq").body[0],
         ast.parse("from temporalio import workflow").body[0],
-        ast.parse(
-            "from temporalio.common import RetryPolicy"
-        ).body[0],
-        ast.parse(
-            "from temporalio.exceptions import ApplicationError"
-        ).body[0],
+        ast.parse("from temporalio.common import RetryPolicy").body[0],
+        ast.parse("from temporalio.exceptions import ApplicationError").body[0],
     ]
     # Imports per Tool function
     seen_modules: set[str] = set()
     for fdef in workflow.use.functions.values():
         if isinstance(fdef, ToolFunction):
             if fdef.module not in seen_modules:
-                statements.append(
-                    ast.parse(f"import {fdef.module}").body[0]
-                )
+                statements.append(ast.parse(f"import {fdef.module}").body[0])
                 seen_modules.add(fdef.module)
         elif isinstance(fdef, SpecializedAgentFunction):
             statements.append(
-                ast.parse(
-                    "from activities.specialized_agents import call_specialized_agent"
-                ).body[0]
+                ast.parse("from activities.specialized_agents import call_specialized_agent").body[
+                    0
+                ]
             )
     # Dedupe (defensywnie: powtarzalne specialized_agents import)
     deduped: list[ast.stmt] = []
@@ -199,11 +193,11 @@ def _build_eval_helper() -> list[ast.stmt]:
         "_JQ_CACHE: dict[str, Any] = {}\n"
         "\n"
         "def _eval(expr: str, ctx: dict[str, Any]) -> Any:\n"
-        "    \"\"\"Wyewaluuj wyrażenie JQ przez kontekst.\n"
+        '    """Wyewaluuj wyrażenie JQ przez kontekst.\n'
         "\n"
         "    Action item (#15): zweryfikować że libjq nie łamie Workflow Sandbox.\n"
         "    Fallback: przenieść do activity (deterministic eval).\n"
-        "    \"\"\"\n"
+        '    """\n'
         "    prog = _JQ_CACHE.get(expr)\n"
         "    if prog is None:\n"
         "        prog = jq.compile(expr)\n"
@@ -212,9 +206,7 @@ def _build_eval_helper() -> list[ast.stmt]:
     ).body
 
 
-def _build_workflow_class(
-    workflow: Workflow, class_name: str, workflow_name: str
-) -> ast.ClassDef:
+def _build_workflow_class(workflow: Workflow, class_name: str, workflow_name: str) -> ast.ClassDef:
     """Zbuduj `@workflow.defn(name=...)`-owaną klasę z `run()` async method."""
     decorator = ast.Call(
         func=ast.Attribute(value=ast.Name("workflow", ast.Load()), attr="defn", ctx=ast.Load()),
@@ -225,14 +217,10 @@ def _build_workflow_class(
     run_body: list[ast.stmt] = []
 
     # `steps_output: dict[str, Any] = {}`
-    run_body.append(
-        ast.parse('steps_output: dict[str, Any] = {}').body[0]
-    )
+    run_body.append(ast.parse("steps_output: dict[str, Any] = {}").body[0])
     # `ctx: dict[str, Any] = {"input": input, "steps": steps_output}`
     run_body.append(
-        ast.parse(
-            'ctx: dict[str, Any] = {"input": input, "steps": steps_output}'
-        ).body[0]
+        ast.parse('ctx: dict[str, Any] = {"input": input, "steps": steps_output}').body[0]
     )
 
     # Sekwencja zadań z workflow.do[]
@@ -322,10 +310,14 @@ def _build_call(
         target = f"{func.module}.{func.operation}"
         with_arg = task.with_ if task.with_ is not None else {}
         # Activity arguments: pojedynczy dict (zakładamy, że Tools przyjmują dict / Pydantic input)
-        call_expr = ast.parse(
-            f"await workflow.execute_activity({target}, {_repr(with_arg)}, "
-            f"{', '.join(timeout_kwargs + retry_kwarg)})"
-        ).body[0].value
+        call_expr = (
+            ast.parse(
+                f"await workflow.execute_activity({target}, {_repr(with_arg)}, "
+                f"{', '.join(timeout_kwargs + retry_kwarg)})"
+            )
+            .body[0]
+            .value
+        )
     else:  # SpecializedAgentFunction
         agent_call = {
             "agent": func.name,
@@ -333,11 +325,15 @@ def _build_call(
             "operation": func.operation,
             "with": task.with_ or {},
         }
-        call_expr = ast.parse(
-            f"await workflow.execute_activity(call_specialized_agent, "
-            f"{_repr(agent_call)}, "
-            f"{', '.join(timeout_kwargs + retry_kwarg)})"
-        ).body[0].value
+        call_expr = (
+            ast.parse(
+                f"await workflow.execute_activity(call_specialized_agent, "
+                f"{_repr(agent_call)}, "
+                f"{', '.join(timeout_kwargs + retry_kwarg)})"
+            )
+            .body[0]
+            .value
+        )
 
     assign = ast.Assign(
         targets=[ast.Name(name, ast.Store())],
@@ -345,22 +341,26 @@ def _build_call(
         type_comment=None,
     )
     export = ast.Assign(
-        targets=[ast.Subscript(
-            value=ast.Name(steps_var, ast.Load()),
-            slice=ast.Constant(name),
-            ctx=ast.Store(),
-        )],
+        targets=[
+            ast.Subscript(
+                value=ast.Name(steps_var, ast.Load()),
+                slice=ast.Constant(name),
+                ctx=ast.Store(),
+            )
+        ],
         value=ast.Name(name, ast.Load()),
     )
     # Optional: explicit `export.as` (#12)
     if task.export and task.export.as_:
         # ctx[steps][name] = _eval(<as>, ctx)
         export = ast.Assign(
-            targets=[ast.Subscript(
-                value=ast.Name(steps_var, ast.Load()),
-                slice=ast.Constant(name),
-                ctx=ast.Store(),
-            )],
+            targets=[
+                ast.Subscript(
+                    value=ast.Name(steps_var, ast.Load()),
+                    slice=ast.Constant(name),
+                    ctx=ast.Store(),
+                )
+            ],
             value=ast.parse(f"_eval({task.export.as_!r}, {ctx_var})").body[0].value,
         )
     return [assign, export]
@@ -409,7 +409,9 @@ def _resolve_policies(
         if meta.get("maximum_interval"):
             kwargs.append(f"maximum_interval={_iso_to_timedelta(meta['maximum_interval'])}")
         # non_retryable: merge manifest defaults (poza scope generatora — caller wstrzykuje) + profile
-        non_retryable = list(rp.non_retryable_types) + list(meta.get("non_retryable_error_types", []))
+        non_retryable = list(rp.non_retryable_types) + list(
+            meta.get("non_retryable_error_types", [])
+        )
         if non_retryable:
             kwargs.append(f"non_retryable_error_types={non_retryable!r}")
         if kwargs:
@@ -418,9 +420,7 @@ def _resolve_policies(
     return timeout_kwargs, retry_kwarg
 
 
-def _build_do(
-    task: DoTask, workflow: Workflow, ctx_var: str, steps_var: str
-) -> list[ast.stmt]:
+def _build_do(task: DoTask, workflow: Workflow, ctx_var: str, steps_var: str) -> list[ast.stmt]:
     stmts: list[ast.stmt] = []
     for named in task.do:
         stmts.extend(_build_task_stmts(named, workflow, ctx_var, steps_var))
@@ -430,13 +430,11 @@ def _build_do(
 def _build_wait(name: str, task: WaitTask, steps_var: str) -> list[ast.stmt]:
     delta = _iso_to_timedelta(task.wait)
     sleep = ast.parse(f"await workflow.sleep({delta})").body
-    export = ast.parse(f'{steps_var}[{name!r}] = None').body
+    export = ast.parse(f"{steps_var}[{name!r}] = None").body
     return sleep + export
 
 
-def _build_set(
-    name: str, task: SetTask, ctx_var: str, steps_var: str
-) -> list[ast.stmt]:
+def _build_set(name: str, task: SetTask, ctx_var: str, steps_var: str) -> list[ast.stmt]:
     return ast.parse(f"{steps_var}[{name!r}] = {_repr(task.set)}").body
 
 
@@ -453,9 +451,7 @@ def _build_raise(name: str, task: RaiseTask) -> list[ast.stmt]:
     if isinstance(err, str):
         return ast.parse(f"raise ApplicationError({err!r}, non_retryable=True)").body
     err_type = err.type or "InternalError"
-    return ast.parse(
-        f"raise ApplicationError({err_type!r}, non_retryable=True)"
-    ).body
+    return ast.parse(f"raise ApplicationError({err_type!r}, non_retryable=True)").body
 
 
 def _build_switch(
@@ -477,7 +473,7 @@ def _build_switch(
 
     def _branch_body(then: str, do_seq: list) -> list[ast.stmt]:
         """Body branch: tracking decision + branch tasks (jeśli mapper rebuilduje case.do)."""
-        body: list[ast.stmt] = ast.parse(f'{steps_var}[{name!r}] = {then!r}').body
+        body: list[ast.stmt] = ast.parse(f"{steps_var}[{name!r}] = {then!r}").body
         for named in do_seq:
             body.extend(_build_task_stmts(named, workflow, ctx_var, steps_var))
         return body
@@ -492,7 +488,7 @@ def _build_switch(
             current.orelse = body
             break
         new_if = ast.If(
-            test=ast.parse(f'_eval({when!r}, {ctx_var})', mode="eval").body,
+            test=ast.parse(f"_eval({when!r}, {ctx_var})", mode="eval").body,
             body=body,
             orelse=[],
         )
@@ -548,9 +544,7 @@ def _build_for(
         orelse=[],
     )
     # Append iteration result do listy steps_output[name]
-    body.append(
-        ast.parse(f"{steps_var}[{name!r}].append({each})").body[0]
-    )
+    body.append(ast.parse(f"{steps_var}[{name!r}].append({each})").body[0])
     return init + [for_stmt]
 
 
@@ -573,9 +567,7 @@ def _build_fork(
         fn_name = f"_branch_{name}_{i}"
         fn = ast.AsyncFunctionDef(
             name=fn_name,
-            args=ast.arguments(
-                posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]
-            ),
+            args=ast.arguments(posonlyargs=[], args=[], kwonlyargs=[], kw_defaults=[], defaults=[]),
             body=b_body or [ast.Pass()],
             decorator_list=[],
             returns=None,
@@ -594,15 +586,11 @@ def _build_fork(
     else:
         await_stmt = ast.parse(f"await asyncio.gather({', '.join(fn_calls)})").body
 
-    set_stmt = ast.parse(
-        f'{steps_var}[{name!r}] = "completed"'
-    ).body
+    set_stmt = ast.parse(f'{steps_var}[{name!r}] = "completed"').body
     return fn_defs + await_stmt + set_stmt
 
 
-def _build_listen(
-    name: str, task: ListenTask, ctx_var: str, steps_var: str
-) -> list[ast.stmt]:
+def _build_listen(name: str, task: ListenTask, ctx_var: str, steps_var: str) -> list[ast.stmt]:
     """Listen: subskrypcja eventów. MVP: minimal — workflow.wait_condition na flagę
     sygnałową (nazwa = `name`). Pełna obsługa signal handlers zarejestrowanych przez
     `@workflow.signal` decorator wymaga rozszerzenia generatora w F5+ (post-MVP).
@@ -611,14 +599,11 @@ def _build_listen(
     """
     # MVP: workflow.wait_condition zawsze przejdzie (lambda: True) → no-op listener
     return ast.parse(
-        "await workflow.wait_condition(lambda: True)\n"
-        f'{steps_var}[{name!r}] = "listened"'
+        f'await workflow.wait_condition(lambda: True)\n{steps_var}[{name!r}] = "listened"'
     ).body
 
 
-def _build_run(
-    name: str, task: RunTask, ctx_var: str, steps_var: str
-) -> list[ast.stmt]:
+def _build_run(name: str, task: RunTask, ctx_var: str, steps_var: str) -> list[ast.stmt]:
     """Run: child workflow / script / shell / container.
 
     MVP: pełna obsługa `run.workflow` (child workflow). Pozostałe (script/shell/container)
@@ -642,17 +627,14 @@ def _build_run(
         "unknown",
     )
     return ast.parse(
-        f'{steps_var}[{name!r}] = '
-        f'{{"_marker": "run_external_skipped_in_mvp", "kind": {kind!r}}}'
+        f'{steps_var}[{name!r}] = {{"_marker": "run_external_skipped_in_mvp", "kind": {kind!r}}}'
     ).body
 
 
 # ---------- Helpers -------------------------------------------------------------
 
 
-_ISO_RE = re.compile(
-    r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$"
-)
+_ISO_RE = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$")
 
 
 def _iso_to_timedelta(iso: str) -> str:

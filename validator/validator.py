@@ -70,9 +70,7 @@ def apply_default_timeout(
             temporal["schedule_to_close"] = cascade_schedule_to_close
         metadata = {"temporal": temporal}
 
-    workflow.use.timeouts["default_timeout"] = TimeoutPolicy(
-        after=cascade_after, metadata=metadata
-    )
+    workflow.use.timeouts["default_timeout"] = TimeoutPolicy(after=cascade_after, metadata=metadata)
     return workflow
 
 
@@ -85,7 +83,8 @@ def _validate_use(wf: Workflow, rep: ValidationReport) -> None:
         # C: function name w `Use` musi być spójna z polem `name` w def
         if fdef.name != fname:
             rep.add(
-                "C001", Severity.ERROR,
+                "C001",
+                Severity.ERROR,
                 f"use.functions.{fname}.name",
                 f"Pole `name` ({fdef.name!r}) nie zgadza się z kluczem ({fname!r}).",
             )
@@ -100,42 +99,51 @@ def _validate_use(wf: Workflow, rep: ValidationReport) -> None:
         # ISO 8601 sprawdza Pydantic (`IsoDuration`); tu sprawdzamy obecność `after` (też strict).
         if not t.after:
             rep.add(
-                "E001", Severity.ERROR,
+                "E001",
+                Severity.ERROR,
                 f"use.timeouts.{tname}.after",
                 "Pole `after` jest wymagane (Temporal start_to_close_timeout).",
             )
 
 
-def _check_retry_no_temporal_mapping(
-    retry: RetryPolicy, path: str, rep: ValidationReport
-) -> None:
+def _check_retry_no_temporal_mapping(retry: RetryPolicy, path: str, rep: ValidationReport) -> None:
     """Decyzja #21: jitter, when, exceptWhen, limit.duration, limit.attempt.duration → ERROR."""
     if retry.jitter is not None:
         rep.add(
-            "E101", Severity.ERROR, f"{path}.jitter",
+            "E101",
+            Severity.ERROR,
+            f"{path}.jitter",
             "CNCF SW `jitter` nie ma mapping na Temporal RetryPolicy. Usuń pole.",
         )
     if retry.when is not None:
         rep.add(
-            "E102", Severity.ERROR, f"{path}.when",
+            "E102",
+            Severity.ERROR,
+            f"{path}.when",
             "CNCF SW `when` (expression filter) nie ma mapping na Temporal. "
             "Użyj `nonRetryableTypes` lub typed errors.",
         )
     if retry.except_when is not None:
         rep.add(
-            "E103", Severity.ERROR, f"{path}.exceptWhen",
+            "E103",
+            Severity.ERROR,
+            f"{path}.exceptWhen",
             "CNCF SW `exceptWhen` nie ma mapping na Temporal. "
             "Użyj `nonRetryableTypes` lub typed errors.",
         )
     if retry.limit and retry.limit.duration is not None:
         rep.add(
-            "E104", Severity.ERROR, f"{path}.limit.duration",
+            "E104",
+            Severity.ERROR,
+            f"{path}.limit.duration",
             "CNCF SW `limit.duration` (total) nie ma mapping na Temporal. "
             "Użyj timeoutu schedule_to_close zamiast.",
         )
     if retry.limit and retry.limit.attempt and retry.limit.attempt.duration is not None:
         rep.add(
-            "E105", Severity.ERROR, f"{path}.limit.attempt.duration",
+            "E105",
+            Severity.ERROR,
+            f"{path}.limit.attempt.duration",
             "CNCF SW `limit.attempt.duration` nie ma mapping na Temporal. "
             "Użyj timeoutu start_to_close zamiast.",
         )
@@ -152,14 +160,18 @@ def _walk(
     for idx, named in enumerate(do_seq):
         if not isinstance(named, dict) or len(named) != 1:
             rep.add(
-                "A002", Severity.ERROR, f"{base_path}[{idx}]",
+                "A002",
+                Severity.ERROR,
+                f"{base_path}[{idx}]",
                 "Element `do[]` musi być dictem z dokładnie 1 kluczem (task name).",
             )
             continue
         name, task = next(iter(named.items()))
         if name in seen_names:
             rep.add(
-                "A001", Severity.ERROR, f"{base_path}[{idx}].{name}",
+                "A001",
+                Severity.ERROR,
+                f"{base_path}[{idx}].{name}",
                 f"Duplikat task name w obrębie workflowu: {name!r}.",
             )
         seen_names.add(name)
@@ -183,7 +195,9 @@ def _validate_task(
     elif isinstance(task, ForkTask):
         if not task.fork.branches:
             rep.add(
-                "A011", Severity.ERROR, f"{path}.fork.branches",
+                "A011",
+                Severity.ERROR,
+                f"{path}.fork.branches",
                 "`fork.branches` nie może być puste.",
             )
         for i, branch in enumerate(task.fork.branches):
@@ -195,7 +209,9 @@ def _validate_task(
         _validate_catch(task.catch, f"{path}.catch", wf, seen_names, rep)
     elif isinstance(task, ListenTask) and not task.listen.get("to"):
         rep.add(
-            "A013", Severity.ERROR, f"{path}.listen.to",
+            "A013",
+            Severity.ERROR,
+            f"{path}.listen.to",
             "`listen.to` jest wymagane.",
         )
     # WaitTask / EmitTask / RaiseTask / RunTask / SetTask: minimalne pola
@@ -208,14 +224,18 @@ def _validate_task(
 def _validate_call(call: CallTask, path: str, wf: Workflow, rep: ValidationReport) -> None:
     if call.call not in wf.use.functions:
         rep.add(
-            "C002", Severity.ERROR, f"{path}.call",
+            "C002",
+            Severity.ERROR,
+            f"{path}.call",
             f"Funkcja {call.call!r} nie istnieje w `use.functions`.",
         )
 
     # E: brak timeout dla call → WARNING + auto-default w publishu (#28)
     if call.timeout is None:
         rep.add(
-            "E201", Severity.WARNING, f"{path}.timeout",
+            "E201",
+            Severity.WARNING,
+            f"{path}.timeout",
             "Brak `timeout`; przed publish wstrzykiwany jest `default_timeout` "
             "(cascade Tenant → Client Org → Blueprint).",
         )
@@ -231,7 +251,9 @@ def _validate_container_body(
 ) -> None:
     if not body:
         rep.add(
-            "A003", Severity.ERROR, path,
+            "A003",
+            Severity.ERROR,
+            path,
             f"Body `{container_kind}` nie może być puste.",
         )
         return
@@ -247,13 +269,16 @@ def _validate_switch(switch: SwitchTask, path: str, rep: ValidationReport) -> No
                 default_count += 1
             if not case.then:
                 rep.add(
-                    "B001", Severity.ERROR,
+                    "B001",
+                    Severity.ERROR,
                     f"{path}.switch[{i}].{cid}.then",
                     "Brak target `then` w switch case.",
                 )
     if default_count > 1:
         rep.add(
-            "B002", Severity.ERROR, f"{path}.switch",
+            "B002",
+            Severity.ERROR,
+            f"{path}.switch",
             f"Tylko jeden default case (bez `when`) jest dozwolony; znaleziono {default_count}.",
         )
 
@@ -274,7 +299,9 @@ def _validate_catch(
                 allowed.update(e.type for e in fdef.errors)
             if ref.type not in allowed:
                 rep.add(
-                    "C003", Severity.ERROR, f"{path}.errors.with.type",
+                    "C003",
+                    Severity.ERROR,
+                    f"{path}.errors.with.type",
                     f"Typ błędu {ref.type!r} nieznany. "
                     f"Dozwolone: base ∪ errors zadeklarowane w `use.functions`.",
                 )
@@ -288,13 +315,17 @@ def _validate_policy_refs(task: Any, path: str, wf: Workflow, rep: ValidationRep
     timeout = getattr(task, "timeout", None)
     if isinstance(timeout, str) and timeout not in wf.use.timeouts:
         rep.add(
-            "C010", Severity.ERROR, f"{path}.timeout",
+            "C010",
+            Severity.ERROR,
+            f"{path}.timeout",
             f"Profile timeout {timeout!r} nieznany w `use.timeouts`.",
         )
     retries = getattr(task, "retries", None)
     if isinstance(retries, str) and retries not in wf.use.retries:
         rep.add(
-            "C011", Severity.ERROR, f"{path}.retries",
+            "C011",
+            Severity.ERROR,
+            f"{path}.retries",
             f"Profile retry {retries!r} nieznany w `use.retries`.",
         )
 
@@ -311,6 +342,8 @@ def _validate_workflow_metadata(wf: Workflow, rep: ValidationReport) -> None:
         wrt = temporal.get("workflow_run_timeout")
         if wrt is not None and not isinstance(wrt, str):
             rep.add(
-                "F101", Severity.ERROR, "metadata.temporal.workflow_run_timeout",
+                "F101",
+                Severity.ERROR,
+                "metadata.temporal.workflow_run_timeout",
                 "Wartość musi być ISO 8601 duration string.",
             )

@@ -45,7 +45,7 @@ from ir import (
 )
 
 TRIGGER_TYPES = {"manual_trigger", "webhook_trigger", "schedule_trigger", "event_trigger"}
-ATOMIC_TASK_TYPES = {"call", "wait", "emit", "raise", "run", "set"}
+ATOMIC_TASK_TYPES = {"call", "wait", "emit", "raise", "run", "set", "core.subprocess"}
 CONTAINER_TASK_TYPES = {"for", "try"}
 BRANCHING_TASK_TYPES = {"switch", "fork", "listen"}
 
@@ -398,6 +398,13 @@ def _build_task(
         return SetTask(set=data.get("assignments") or {}, **common)
     if t == "run":
         return RunTask(run=data["run"], **common)
+    if t == "core.subprocess":
+        sub_agent_id = data["subAgentId"]
+        mode = data.get("mode", "wait")
+        return RunTask(
+            run={"workflow": {"name": sub_agent_id, "mode": mode, "input": data.get("input")}},
+            **common,
+        )
 
     if t == "switch":
         return _build_switch(nid, data, outgoing, nodes_by_id, edges, parent_index, branch_owners)

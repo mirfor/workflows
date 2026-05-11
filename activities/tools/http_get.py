@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
+from activities.fixture import fixturable
+
 
 class HttpGetInput(BaseModel):
     url: str = Field(..., min_length=1)
@@ -27,6 +29,7 @@ class HttpGetOutput(BaseModel):
 
 
 @activity.defn(name="http_get")
+@fixturable
 async def http_get(payload: dict[str, Any]) -> dict[str, Any]:
     parsed = HttpGetInput.model_validate(payload)
     try:

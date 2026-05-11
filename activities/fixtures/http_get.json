@@ -1,0 +1,5 @@
+{
+  "status": 200,
+  "body": "<html><body>fixture response</body></html>",
+  "headers": {"content-type": "text/html; charset=utf-8"}
+}

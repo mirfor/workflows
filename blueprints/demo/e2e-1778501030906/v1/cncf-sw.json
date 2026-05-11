@@ -1,0 +1,84 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "demo",
+    "name": "e2e-1778501030906",
+    "version": "1",
+    "summary": "E2E full-run test workflow"
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {
+      "log_message": {
+        "name": "log_message",
+        "type": "weaver_tool",
+        "operation": "log_message",
+        "errors": [
+          {
+            "type": "ValidationError",
+            "retryable": false,
+            "is_base": true
+          }
+        ],
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.log_message"
+      }
+    },
+    "retries": {
+      "default_retry": {
+        "delay": "PT1S",
+        "backoff": {
+          "exponential": {
+            "multiplier": 2.0
+          }
+        },
+        "limit": {
+          "attempt": {
+            "count": 3
+          }
+        },
+        "nonRetryableTypes": [
+          "ValidationError"
+        ]
+      }
+    },
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT2M",
+        "metadata": {
+          "temporal": {
+            "heartbeat": "PT30S"
+          }
+        }
+      }
+    }
+  },
+  "do": [
+    {
+      "log_intro": {
+        "timeout": "default_timeout",
+        "call": "log_message",
+        "with": {
+          "message": "E2E run started",
+          "level": "INFO"
+        }
+      }
+    },
+    {
+      "log_done": {
+        "set": {}
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

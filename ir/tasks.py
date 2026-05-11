@@ -9,7 +9,7 @@ Discriminator po obecności pola-klucza (`call`, `do`, `for`, `fork`, `switch`, 
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from pydantic import Discriminator, Field, Tag
 
@@ -196,6 +196,7 @@ class _RunWorkflow(StrictModel):
     name: str
     version: str | None = None
     input: dict[str, Any] | None = None
+    mode: Literal["wait", "fire_and_forget"] = "wait"
 
 
 class _RunContainer(StrictModel):

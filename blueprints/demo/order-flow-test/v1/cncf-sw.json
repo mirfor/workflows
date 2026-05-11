@@ -1,0 +1,57 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "demo",
+    "name": "order-flow-test",
+    "version": "1",
+    "summary": "test"
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {
+      "log_message": {
+        "name": "log_message",
+        "type": "weaver_tool",
+        "operation": "log_message",
+        "errors": [
+          {
+            "type": "ValidationError",
+            "retryable": false,
+            "is_base": true
+          }
+        ],
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.log_message"
+      }
+    },
+    "retries": {},
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT30S"
+      }
+    }
+  },
+  "do": [
+    {
+      "l": {
+        "timeout": "default_timeout",
+        "call": "log_message",
+        "with": {
+          "message": "x",
+          "level": "INFO"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "status": 200,
+  "body": {"result": "fixture_response", "fixture": true}
+}

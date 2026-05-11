@@ -1,0 +1,105 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "e2e-1778501030906",
+    "version": "1",
+    "summary": "E2E full-run test workflow",
+    "use": {
+      "functions": {
+        "log_message": {
+          "name": "log_message",
+          "type": "weaver_tool",
+          "module": "activities.tools.log_message",
+          "operation": "log_message",
+          "errors": [
+            {
+              "type": "ValidationError",
+              "is_base": true,
+              "retryable": false
+            }
+          ],
+          "defaultRetryProfile": null,
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        }
+      },
+      "retries": {
+        "default_retry": {
+          "delay": "PT1S",
+          "backoff": {
+            "exponential": {
+              "multiplier": 2
+            }
+          },
+          "limit": {
+            "attempt": {
+              "count": 3
+            }
+          },
+          "nonRetryableTypes": [
+            "ValidationError"
+          ]
+        }
+      },
+      "timeouts": {
+        "default_timeout": {
+          "after": "PT2M",
+          "metadata": {
+            "temporal": {
+              "heartbeat": "PT30S"
+            }
+          }
+        }
+      }
+    },
+    "metadata": null,
+    "workflowRunTimeout": null
+  },
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "manual_trigger",
+      "data": {},
+      "parentNode": null
+    },
+    {
+      "id": "log_intro",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "E2E run started",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "log_done",
+      "type": "set",
+      "data": {
+        "variables": {
+          "done": true
+        }
+      },
+      "parentNode": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "trigger",
+      "target": "log_intro",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e2",
+      "source": "log_intro",
+      "target": "log_done",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ]
+}

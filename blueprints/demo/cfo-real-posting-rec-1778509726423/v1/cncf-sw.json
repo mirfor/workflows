@@ -1,0 +1,102 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "demo",
+    "name": "cfo-real-posting-rec-1778509726423",
+    "version": "1",
+    "summary": "CFO real integration — calls posting-rec /health via http_get + X-API-Key"
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {
+      "http_get": {
+        "name": "http_get",
+        "type": "weaver_tool",
+        "operation": "http_get",
+        "errors": [
+          {
+            "type": "IntegrationError",
+            "retryable": true,
+            "is_base": true
+          }
+        ],
+        "defaultRetryProfile": "default_retry",
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.http_get"
+      },
+      "log_message": {
+        "name": "log_message",
+        "type": "weaver_tool",
+        "operation": "log_message",
+        "errors": [
+          {
+            "type": "ValidationError",
+            "retryable": false,
+            "is_base": true
+          }
+        ],
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.log_message"
+      }
+    },
+    "retries": {
+      "default_retry": {
+        "delay": "PT1S",
+        "backoff": {
+          "exponential": {
+            "multiplier": 2.0
+          }
+        },
+        "limit": {
+          "attempt": {
+            "count": 3
+          }
+        },
+        "nonRetryableTypes": [
+          "ValidationError"
+        ]
+      }
+    },
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT30S"
+      }
+    }
+  },
+  "do": [
+    {
+      "health_check": {
+        "timeout": "default_timeout",
+        "call": "http_get",
+        "with": {
+          "url": "http://localhost:8100/health",
+          "headers": {
+            "X-API-Key": "pk_demo_e2e_9b1ea024f9224052"
+          }
+        }
+      }
+    },
+    {
+      "log_done": {
+        "timeout": "default_timeout",
+        "call": "log_message",
+        "with": {
+          "message": "posting-rec reachable — X-API-Key header passed via http_get",
+          "level": "INFO"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

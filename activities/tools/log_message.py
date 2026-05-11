@@ -14,6 +14,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 from temporalio import activity
 
+from activities.fixture import fixturable
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +30,7 @@ class LogMessageOutput(BaseModel):
 
 
 @activity.defn(name="log_message")
+@fixturable
 async def log_message(payload: dict[str, Any]) -> dict[str, Any]:
     """Activity entrypoint — przyjmuje dict, zwraca dict (kompatybilność z Temporal serialization)."""
     parsed = LogMessageInput.model_validate(payload)

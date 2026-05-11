@@ -1,0 +1,422 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "order-flow-1778501238082",
+    "version": "1",
+    "summary": "Realistic order processing — 14 nodes, fork+switch+emit+http",
+    "use": {
+      "functions": {
+        "log_message": {
+          "name": "log_message",
+          "type": "weaver_tool",
+          "module": "activities.tools.log_message",
+          "operation": "log_message",
+          "errors": [
+            {
+              "type": "ValidationError",
+              "is_base": true,
+              "retryable": false
+            }
+          ],
+          "defaultRetryProfile": null,
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        },
+        "http_get": {
+          "name": "http_get",
+          "type": "weaver_tool",
+          "module": "activities.tools.http_get",
+          "operation": "http_get",
+          "errors": [
+            {
+              "type": "IntegrationError",
+              "is_base": true,
+              "retryable": true
+            }
+          ],
+          "defaultRetryProfile": "default_retry",
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        }
+      },
+      "retries": {
+        "default_retry": {
+          "delay": "PT1S",
+          "backoff": {
+            "exponential": {
+              "multiplier": 2
+            }
+          },
+          "limit": {
+            "attempt": {
+              "count": 3
+            }
+          },
+          "nonRetryableTypes": [
+            "ValidationError"
+          ]
+        }
+      },
+      "timeouts": {
+        "default_timeout": {
+          "after": "PT30S"
+        }
+      }
+    },
+    "metadata": null,
+    "workflowRunTimeout": null
+  },
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "manual_trigger",
+      "data": {},
+      "parentNode": null
+    },
+    {
+      "id": "log_intro",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "Order received — starting processing",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "fetch_data",
+      "type": "call",
+      "data": {
+        "function": "http_get",
+        "with": {
+          "url": "https://httpbin.org/json"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "extract",
+      "type": "set",
+      "data": {
+        "assignments": {
+          "order_id": "ORD-12345",
+          "tier": ".input.tier",
+          "amount": 250
+        }
+      },
+      "parentNode": null
+    },
+    {
+      "id": "decision",
+      "type": "switch",
+      "data": {
+        "cases": [
+          {
+            "id": "vip_case",
+            "when": ".tier == \"vip\""
+          },
+          {
+            "id": "standard_case",
+            "when": ".tier == \"standard\""
+          },
+          {
+            "id": "low_case",
+            "when": ".tier == \"low\""
+          }
+        ]
+      },
+      "parentNode": null
+    },
+    {
+      "id": "log_vip",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "VIP path — premium handling",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "emit_vip",
+      "type": "emit",
+      "data": {
+        "source": "order-flow",
+        "type": "order.vip.detected",
+        "data_template": {
+          "tier": "vip"
+        }
+      },
+      "parentNode": null
+    },
+    {
+      "id": "set_priority_vip",
+      "type": "set",
+      "data": {
+        "assignments": {
+          "priority": "high",
+          "sla_minutes": 15
+        }
+      },
+      "parentNode": null
+    },
+    {
+      "id": "log_standard",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "Standard path — normal handling",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "set_priority_standard",
+      "type": "set",
+      "data": {
+        "assignments": {
+          "priority": "normal",
+          "sla_minutes": 60
+        }
+      },
+      "parentNode": null
+    },
+    {
+      "id": "log_low",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "Low path — batch handling",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "set_priority_low",
+      "type": "set",
+      "data": {
+        "assignments": {
+          "priority": "low",
+          "sla_minutes": 240
+        }
+      },
+      "parentNode": null
+    },
+    {
+      "id": "notify_fork",
+      "type": "fork",
+      "data": {
+        "compete": false
+      },
+      "parentNode": null
+    },
+    {
+      "id": "notify_email",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "Email queued for customer",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "notify_log",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "Audit log entry written",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "notify_metric",
+      "type": "set",
+      "data": {
+        "assignments": {
+          "metric_sent": true
+        }
+      },
+      "parentNode": null
+    },
+    {
+      "id": "finalize",
+      "type": "set",
+      "data": {
+        "assignments": {
+          "status": "completed",
+          "finalized_at": "now"
+        }
+      },
+      "parentNode": null
+    },
+    {
+      "id": "log_done",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "Order processing complete",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "trigger",
+      "target": "log_intro",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e2",
+      "source": "log_intro",
+      "target": "fetch_data",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e3",
+      "source": "fetch_data",
+      "target": "extract",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e4",
+      "source": "extract",
+      "target": "decision",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e5",
+      "source": "decision",
+      "target": "log_vip",
+      "sourceHandle": "vip_case",
+      "targetHandle": null
+    },
+    {
+      "id": "e6",
+      "source": "log_vip",
+      "target": "emit_vip",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e7",
+      "source": "emit_vip",
+      "target": "set_priority_vip",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e8",
+      "source": "decision",
+      "target": "log_standard",
+      "sourceHandle": "standard_case",
+      "targetHandle": null
+    },
+    {
+      "id": "e9",
+      "source": "log_standard",
+      "target": "set_priority_standard",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e10",
+      "source": "decision",
+      "target": "log_low",
+      "sourceHandle": "low_case",
+      "targetHandle": null
+    },
+    {
+      "id": "e11",
+      "source": "log_low",
+      "target": "set_priority_low",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e12",
+      "source": "set_priority_vip",
+      "target": "notify_fork",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e13",
+      "source": "notify_fork",
+      "target": "notify_email",
+      "sourceHandle": "branch_0",
+      "targetHandle": null
+    },
+    {
+      "id": "e14",
+      "source": "notify_fork",
+      "target": "notify_log",
+      "sourceHandle": "branch_1",
+      "targetHandle": null
+    },
+    {
+      "id": "e15",
+      "source": "notify_fork",
+      "target": "notify_metric",
+      "sourceHandle": "branch_2",
+      "targetHandle": null
+    },
+    {
+      "id": "e16",
+      "source": "notify_email",
+      "target": "finalize",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e17",
+      "source": "notify_log",
+      "target": "finalize",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e18",
+      "source": "notify_metric",
+      "target": "finalize",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e19",
+      "source": "finalize",
+      "target": "log_done",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ]
+}

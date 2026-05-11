@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "order-flow-test",
+    "version": "1",
+    "summary": "test",
+    "use": {
+      "functions": {
+        "log_message": {
+          "name": "log_message",
+          "type": "weaver_tool",
+          "module": "activities.tools.log_message",
+          "operation": "log_message",
+          "errors": [
+            {
+              "type": "ValidationError",
+              "is_base": true,
+              "retryable": false
+            }
+          ],
+          "defaultRetryProfile": null,
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        }
+      },
+      "timeouts": {
+        "default_timeout": {
+          "after": "PT30S"
+        }
+      }
+    },
+    "metadata": null,
+    "workflowRunTimeout": null
+  },
+  "nodes": [
+    {
+      "id": "t",
+      "type": "manual_trigger",
+      "data": {},
+      "parentNode": null
+    },
+    {
+      "id": "l",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "x",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "t",
+      "target": "l",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ]
+}

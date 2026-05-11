@@ -1,0 +1,177 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "demo",
+    "name": "order-flow-1778501238082",
+    "version": "1",
+    "summary": "Realistic order processing — 14 nodes, fork+switch+emit+http"
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {
+      "log_message": {
+        "name": "log_message",
+        "type": "weaver_tool",
+        "operation": "log_message",
+        "errors": [
+          {
+            "type": "ValidationError",
+            "retryable": false,
+            "is_base": true
+          }
+        ],
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.log_message"
+      },
+      "http_get": {
+        "name": "http_get",
+        "type": "weaver_tool",
+        "operation": "http_get",
+        "errors": [
+          {
+            "type": "IntegrationError",
+            "retryable": true,
+            "is_base": true
+          }
+        ],
+        "defaultRetryProfile": "default_retry",
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.http_get"
+      }
+    },
+    "retries": {
+      "default_retry": {
+        "delay": "PT1S",
+        "backoff": {
+          "exponential": {
+            "multiplier": 2.0
+          }
+        },
+        "limit": {
+          "attempt": {
+            "count": 3
+          }
+        },
+        "nonRetryableTypes": [
+          "ValidationError"
+        ]
+      }
+    },
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT30S"
+      }
+    }
+  },
+  "do": [
+    {
+      "log_intro": {
+        "timeout": "default_timeout",
+        "call": "log_message",
+        "with": {
+          "message": "Order received — starting processing",
+          "level": "INFO"
+        }
+      }
+    },
+    {
+      "notify_email": {
+        "timeout": "default_timeout",
+        "call": "log_message",
+        "with": {
+          "message": "Email queued for customer",
+          "level": "INFO"
+        }
+      }
+    },
+    {
+      "notify_log": {
+        "timeout": "default_timeout",
+        "call": "log_message",
+        "with": {
+          "message": "Audit log entry written",
+          "level": "INFO"
+        }
+      }
+    },
+    {
+      "notify_metric": {
+        "set": {
+          "metric_sent": true
+        }
+      }
+    },
+    {
+      "fetch_data": {
+        "timeout": "default_timeout",
+        "call": "http_get",
+        "with": {
+          "url": "https://httpbin.org/json"
+        }
+      }
+    },
+    {
+      "finalize": {
+        "set": {
+          "status": "completed",
+          "finalized_at": "now"
+        }
+      }
+    },
+    {
+      "extract": {
+        "set": {
+          "order_id": "ORD-12345",
+          "tier": ".input.tier",
+          "amount": 250
+        }
+      }
+    },
+    {
+      "log_done": {
+        "timeout": "default_timeout",
+        "call": "log_message",
+        "with": {
+          "message": "Order processing complete",
+          "level": "INFO"
+        }
+      }
+    },
+    {
+      "decision": {
+        "switch": [
+          {
+            "vip_case": {
+              "when": ".tier == \"vip\"",
+              "then": "log_vip"
+            }
+          },
+          {
+            "standard_case": {
+              "when": ".tier == \"standard\"",
+              "then": "log_standard"
+            }
+          },
+          {
+            "low_case": {
+              "when": ".tier == \"low\"",
+              "then": "log_low"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

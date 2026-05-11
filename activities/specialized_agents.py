@@ -15,6 +15,8 @@ import httpx
 from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
+from activities.fixture import fixturable
+
 
 @dataclass(frozen=True, slots=True)
 class AgentCall:
@@ -37,6 +39,7 @@ class AgentResult:
 
 
 @activity.defn(name="call_specialized_agent")
+@fixturable
 async def call_specialized_agent(call: dict[str, Any]) -> dict[str, Any]:
     """Wywołaj Specialized Agent przez HTTP POST <endpoint_url>/<operation>.
 

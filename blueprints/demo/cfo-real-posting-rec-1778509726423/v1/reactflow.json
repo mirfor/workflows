@@ -1,0 +1,121 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "cfo-real-posting-rec-1778509726423",
+    "version": "1",
+    "summary": "CFO real integration — calls posting-rec /health via http_get + X-API-Key",
+    "use": {
+      "functions": {
+        "http_get": {
+          "name": "http_get",
+          "type": "weaver_tool",
+          "module": "activities.tools.http_get",
+          "operation": "http_get",
+          "errors": [
+            {
+              "type": "IntegrationError",
+              "is_base": true,
+              "retryable": true
+            }
+          ],
+          "defaultRetryProfile": "default_retry",
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        },
+        "log_message": {
+          "name": "log_message",
+          "type": "weaver_tool",
+          "module": "activities.tools.log_message",
+          "operation": "log_message",
+          "errors": [
+            {
+              "type": "ValidationError",
+              "is_base": true,
+              "retryable": false
+            }
+          ],
+          "defaultRetryProfile": null,
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        }
+      },
+      "retries": {
+        "default_retry": {
+          "delay": "PT1S",
+          "backoff": {
+            "exponential": {
+              "multiplier": 2
+            }
+          },
+          "limit": {
+            "attempt": {
+              "count": 3
+            }
+          },
+          "nonRetryableTypes": [
+            "ValidationError"
+          ]
+        }
+      },
+      "timeouts": {
+        "default_timeout": {
+          "after": "PT30S"
+        }
+      }
+    },
+    "metadata": null,
+    "workflowRunTimeout": null
+  },
+  "nodes": [
+    {
+      "id": "trigger",
+      "type": "manual_trigger",
+      "data": {},
+      "parentNode": null
+    },
+    {
+      "id": "health_check",
+      "type": "call",
+      "data": {
+        "function": "http_get",
+        "with": {
+          "url": "http://localhost:8100/health",
+          "headers": {
+            "X-API-Key": "pk_demo_e2e_9b1ea024f9224052"
+          }
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    },
+    {
+      "id": "log_done",
+      "type": "call",
+      "data": {
+        "function": "log_message",
+        "with": {
+          "message": "posting-rec reachable — X-API-Key header passed via http_get",
+          "level": "INFO"
+        },
+        "timeout": "default_timeout"
+      },
+      "parentNode": null
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "trigger",
+      "target": "health_check",
+      "sourceHandle": null,
+      "targetHandle": null
+    },
+    {
+      "id": "e2",
+      "source": "health_check",
+      "target": "log_done",
+      "sourceHandle": null,
+      "targetHandle": null
+    }
+  ]
+}

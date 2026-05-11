@@ -176,6 +176,13 @@ def _build_imports(workflow: Workflow) -> list[ast.stmt]:
                     0
                 ]
             )
+    # Import record_child_engagement if any subprocess task is used
+    if _uses_child_workflow(workflow.do):
+        statements.append(
+            ast.parse("from activities.tools.child_engagement import record_child_engagement").body[
+                0
+            ]
+        )
     # Dedupe (defensywnie: powtarzalne specialized_agents import)
     deduped: list[ast.stmt] = []
     seen_text: set[str] = set()
@@ -606,21 +613,57 @@ def _build_listen(name: str, task: ListenTask, ctx_var: str, steps_var: str) -> 
 def _build_run(name: str, task: RunTask, ctx_var: str, steps_var: str) -> list[ast.stmt]:
     """Run: child workflow / script / shell / container.
 
-    MVP: pełna obsługa `run.workflow` (child workflow). Pozostałe (script/shell/container)
-    emitują rekord w `steps_output` z marker `run_external_skipped_in_mvp` — do zaimplementowania
-    przez activity dispatcher post-MVP.
+    `run.workflow.mode == "wait"` → execute_child_workflow (await result).
+    `run.workflow.mode == "fire_and_forget"` → start_child_workflow (don't await).
+    Both modes register a child Engagement via `record_child_engagement` activity.
+    Pozostałe (script/shell/container) emitują marker `run_external_skipped_in_mvp`.
     """
     spec = task.run
     if spec.workflow is not None:
         wf_ref = spec.workflow.name
         wf_input = spec.workflow.input or {}
-        wf_id = f"{name}-child"
-        return ast.parse(
-            f"{name}_result = await workflow.execute_child_workflow(\n"
-            f"    {wf_ref!r}, {_repr(wf_input)}, id={wf_id!r}\n"
-            ")\n"
-            f"{steps_var}[{name!r}] = {name}_result"
-        ).body
+        mode = spec.workflow.mode  # "wait" | "fire_and_forget"
+        handle_var = f"_{name}_child_handle"
+
+        # _name_child_wf_id = f"name-child-{workflow.info().workflow_id}"
+        id_code = (
+            f"{handle_var[1:].replace('_child_handle', '_child_wf_id')}"
+            f' = f"{name}-child-{{workflow.info().workflow_id}}"'
+        )
+        child_id_var = f"_{name}_child_wf_id"
+
+        # start_child_workflow (both modes — gives us run_id before awaiting)
+        start_code = (
+            f"{handle_var} = await workflow.start_child_workflow(\n"
+            f"    {wf_ref!r}, {_repr(wf_input)}, id={child_id_var}\n"
+            f")"
+        )
+
+        # record_child_engagement activity call
+        record_code = (
+            f"await workflow.execute_activity(\n"
+            f"    record_child_engagement,\n"
+            f"    {{\n"
+            f'        "tenant_id": workflow.info().namespace,\n'
+            f'        "agent_id": {wf_ref!r},\n'
+            f'        "workflow_id": {handle_var}.id,\n'
+            f'        "run_id": {handle_var}.first_run_id,\n'
+            f'        "parent_workflow_id": workflow.info().workflow_id,\n'
+            f"    }},\n"
+            f"    start_to_close_timeout=timedelta(seconds=30),\n"
+            f")"
+        )
+
+        if mode == "fire_and_forget":
+            result_code = f'{steps_var}[{name!r}] = {{"child_workflow_id": {handle_var}.id}}'
+        else:
+            result_code = (
+                f"{name}_result = await {handle_var}.result()\n"
+                f"{steps_var}[{name!r}] = {name}_result"
+            )
+
+        full_code = "\n".join([id_code, start_code, record_code, result_code])
+        return ast.parse(full_code).body
 
     kind = next(
         (k for k in ("script", "shell", "container") if getattr(spec, k) is not None),
@@ -632,6 +675,33 @@ def _build_run(name: str, task: RunTask, ctx_var: str, steps_var: str) -> list[a
 
 
 # ---------- Helpers -------------------------------------------------------------
+
+
+def _uses_child_workflow(tasks: list[Any]) -> bool:
+    """True jeśli jakikolwiek task (rekurencyjnie) to RunTask z run.workflow."""
+    for named in tasks:
+        _, task = next(iter(named.items()))
+        if isinstance(task, RunTask) and task.run.workflow is not None:
+            return True
+        if isinstance(task, DoTask) and _uses_child_workflow(task.do):
+            return True
+        if isinstance(task, ForTask) and _uses_child_workflow(task.do):
+            return True
+        if isinstance(task, TryTask) and (
+            _uses_child_workflow(task.try_)
+            or (task.catch.do and _uses_child_workflow(task.catch.do))
+        ):
+            return True
+        if isinstance(task, ForkTask) and any(
+            _uses_child_workflow([b]) for b in task.fork.branches
+        ):
+            return True
+        if isinstance(task, SwitchTask):
+            for case_dict in task.switch:
+                for case in case_dict.values():
+                    if case.do and _uses_child_workflow(case.do):
+                        return True
+    return False
 
 
 _ISO_RE = re.compile(r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$")

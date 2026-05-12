@@ -10,8 +10,6 @@ Pipeline:
 The resulting JSON matches the input contract expected by `posting-recommendation-service`.
 """
 
-from __future__ import annotations
-
 import base64
 import os
 from typing import Any
@@ -130,6 +128,8 @@ class InvoiceExtractionOutput(BaseModel):
     chunks_processed: int
     usage_total_tokens: int
     model_used: str
+
+
 
 
 def _proxy_key() -> str:

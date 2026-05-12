@@ -284,23 +284,23 @@ def _build_task_stmts(
     if isinstance(task, WaitTask):
         return _build_wait(name, task, steps_var)
     if isinstance(task, SetTask):
-        return _build_set(name, task, ctx_var, steps_var)
+        return _build_set(name, task, steps_var)
     if isinstance(task, EmitTask):
         return _build_emit(name, task, steps_var)
     if isinstance(task, RaiseTask):
-        return _build_raise(name, task)
+        return _build_raise(task)
     if isinstance(task, SwitchTask):
         return _build_switch(name, task, ctx_var, steps_var, workflow)
     if isinstance(task, TryTask):
-        return _build_try(name, task, workflow, ctx_var, steps_var)
+        return _build_try(task, workflow, ctx_var, steps_var)
     if isinstance(task, ForTask):
         return _build_for(name, task, workflow, ctx_var, steps_var)
     if isinstance(task, ForkTask):
         return _build_fork(name, task, workflow, ctx_var, steps_var)
     if isinstance(task, ListenTask):
-        return _build_listen(name, task, ctx_var, steps_var)
+        return _build_listen(name, steps_var)
     if isinstance(task, RunTask):
-        return _build_run(name, task, ctx_var, steps_var)
+        return _build_run(name, task, steps_var)
 
     raise GeneratorError(f"Niewspierany task type: {type(task).__name__} dla {name!r}.")
 
@@ -446,7 +446,7 @@ def _build_wait(name: str, task: WaitTask, steps_var: str) -> list[ast.stmt]:
     return sleep + export
 
 
-def _build_set(name: str, task: SetTask, ctx_var: str, steps_var: str) -> list[ast.stmt]:
+def _build_set(name: str, task: SetTask, steps_var: str) -> list[ast.stmt]:
     return ast.parse(f"{steps_var}[{name!r}] = {_repr(task.set)}").body
 
 
@@ -458,7 +458,7 @@ def _build_emit(name: str, task: EmitTask, steps_var: str) -> list[ast.stmt]:
     ).body
 
 
-def _build_raise(name: str, task: RaiseTask) -> list[ast.stmt]:
+def _build_raise(task: RaiseTask) -> list[ast.stmt]:
     err = task.raise_.error
     if isinstance(err, str):
         return ast.parse(f"raise ApplicationError({err!r}, non_retryable=True)").body
@@ -514,9 +514,7 @@ def _build_switch(
     return [if_stmt] if if_stmt else []
 
 
-def _build_try(
-    name: str, task: TryTask, workflow: Workflow, ctx_var: str, steps_var: str
-) -> list[ast.stmt]:
+def _build_try(task: TryTask, workflow: Workflow, ctx_var: str, steps_var: str) -> list[ast.stmt]:
     try_body: list[ast.stmt] = []
     for named in task.try_:
         try_body.extend(_build_task_stmts(named, workflow, ctx_var, steps_var))
@@ -574,7 +572,7 @@ def _build_fork(
     fn_defs: list[ast.stmt] = []
     fn_calls: list[str] = []
     for i, branch_dict in enumerate(branches):
-        b_name, _b_task = next(iter(branch_dict.items()))
+        _b_name, _b_task = next(iter(branch_dict.items()))
         b_body = _build_task_stmts(branch_dict, workflow, ctx_var, steps_var)
         fn_name = f"_branch_{name}_{i}"
         fn = ast.AsyncFunctionDef(
@@ -602,7 +600,7 @@ def _build_fork(
     return fn_defs + await_stmt + set_stmt
 
 
-def _build_listen(name: str, task: ListenTask, ctx_var: str, steps_var: str) -> list[ast.stmt]:
+def _build_listen(name: str, steps_var: str) -> list[ast.stmt]:
     """Listen: subskrypcja eventów. MVP: minimal — workflow.wait_condition na flagę
     sygnałową (nazwa = `name`). Pełna obsługa signal handlers zarejestrowanych przez
     `@workflow.signal` decorator wymaga rozszerzenia generatora w F5+ (post-MVP).
@@ -615,7 +613,7 @@ def _build_listen(name: str, task: ListenTask, ctx_var: str, steps_var: str) -> 
     ).body
 
 
-def _build_run(name: str, task: RunTask, ctx_var: str, steps_var: str) -> list[ast.stmt]:
+def _build_run(name: str, task: RunTask, steps_var: str) -> list[ast.stmt]:
     """Run: child workflow / script / shell / container.
 
     `run.workflow.mode == "wait"` → execute_child_workflow (await result).

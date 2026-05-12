@@ -46,7 +46,7 @@ from ir import (
 
 TRIGGER_TYPES = {"manual_trigger", "webhook_trigger", "schedule_trigger", "event_trigger"}
 ATOMIC_TASK_TYPES = {"call", "wait", "emit", "raise", "run", "set", "core.subprocess"}
-CONTAINER_TASK_TYPES = {"for", "try"}
+CONTAINER_TASK_TYPES = {"for", "for_each", "try"}
 BRANCHING_TASK_TYPES = {"switch", "fork", "listen"}
 
 

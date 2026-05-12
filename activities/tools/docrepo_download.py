@@ -1,6 +1,5 @@
 """Tool: `docrepo_download` — fetch a document by id, return base64 bytes."""
 
-from __future__ import annotations
 
 import base64
 from typing import Any

@@ -8,7 +8,6 @@ For CSV, the input must be a list of flat dicts (no nested objects); column
 order is taken from the first row.
 """
 
-from __future__ import annotations
 
 import csv
 import io

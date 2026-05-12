@@ -4,7 +4,6 @@ Idempotency: collections are resolved by name (created on first use); uploads
 are NOT idempotent (each call creates a new doc + scan job).
 """
 
-from __future__ import annotations
 
 import asyncio
 import base64

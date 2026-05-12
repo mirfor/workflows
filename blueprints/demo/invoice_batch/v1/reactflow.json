@@ -1,0 +1,150 @@
+{
+  "meta": {
+    "namespace": "demo",
+    "name": "invoice_batch",
+    "version": "1",
+    "summary": "MVP — process a batch of invoices: archive in DocRepo, extract with LLM proxy, generate postings, persist as JSON artifact.",
+    "use": {
+      "functions": {
+        "docrepo_upload": {
+          "name": "docrepo_upload",
+          "type": "weaver_tool",
+          "module": "activities.tools.docrepo_upload",
+          "operation": "docrepo_upload",
+          "errors": [
+            { "type": "ValidationError", "is_base": true, "retryable": false },
+            { "type": "AuthError", "is_base": true, "retryable": false },
+            { "type": "IntegrationError", "is_base": true, "retryable": true },
+            { "type": "TimeoutError", "is_base": true, "retryable": true }
+          ],
+          "defaultRetryProfile": "default_retry",
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": false
+        },
+        "invoice_extraction": {
+          "name": "invoice_extraction",
+          "type": "weaver_tool",
+          "module": "activities.tools.invoice_extraction",
+          "operation": "invoice_extraction",
+          "errors": [
+            { "type": "ValidationError", "is_base": true, "retryable": false },
+            { "type": "AuthError", "is_base": true, "retryable": false },
+            { "type": "IntegrationError", "is_base": true, "retryable": true },
+            { "type": "TimeoutError", "is_base": true, "retryable": true }
+          ],
+          "defaultRetryProfile": "default_retry",
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        },
+        "posting_recommendation": {
+          "name": "posting_recommendation",
+          "type": "weaver_specialized_agent",
+          "endpoint_url": "http://localhost:8600",
+          "operation": "recommend",
+          "errors": [],
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": false
+        },
+        "write_artifact": {
+          "name": "write_artifact",
+          "type": "weaver_tool",
+          "module": "activities.tools.write_artifact",
+          "operation": "write_artifact",
+          "errors": [
+            { "type": "ValidationError", "is_base": true, "retryable": false }
+          ],
+          "defaultTimeoutProfile": "default_timeout",
+          "idempotent": true
+        }
+      },
+      "retries": {
+        "default_retry": {
+          "delay": "PT1S",
+          "backoff": { "exponential": { "multiplier": 2.0 } },
+          "limit": { "attempt": { "count": 3 } },
+          "nonRetryableTypes": ["ValidationError", "AuthError"]
+        }
+      },
+      "timeouts": {
+        "default_timeout": {
+          "after": "PT3M",
+          "metadata": { "temporal": { "heartbeat": "PT30S" } }
+        }
+      }
+    }
+  },
+  "nodes": [
+    { "id": "trigger", "type": "manual_trigger", "data": {} },
+    {
+      "id": "loop",
+      "type": "for",
+      "data": {
+        "each": "file",
+        "in": ".input.files"
+      }
+    },
+    {
+      "id": "archive",
+      "type": "call",
+      "parentNode": "loop",
+      "data": {
+        "function": "docrepo_upload",
+        "with": {
+          "collection_name": "agent-designer-demo-invoices",
+          "file_name": "${ $file.name }",
+          "mime_type": "${ $file.mime }",
+          "data_b64": "${ $file.data_b64 }"
+        },
+        "timeout": "default_timeout",
+        "retry": "default_retry"
+      }
+    },
+    {
+      "id": "extract",
+      "type": "call",
+      "parentNode": "loop",
+      "data": {
+        "function": "invoice_extraction",
+        "with": {
+          "mime_type": "${ $file.mime }",
+          "data_b64": "${ $file.data_b64 }"
+        },
+        "timeout": "default_timeout",
+        "retry": "default_retry"
+      }
+    },
+    {
+      "id": "recommend",
+      "type": "call",
+      "parentNode": "loop",
+      "data": {
+        "function": "posting_recommendation",
+        "with": {
+          "invoice": "${ .extract.output.invoice }"
+        },
+        "timeout": "default_timeout"
+      }
+    },
+    {
+      "id": "write_postings",
+      "type": "call",
+      "data": {
+        "function": "write_artifact",
+        "with": {
+          "tenant_id": "demo",
+          "engagement_id": "${ $context.workflowId }",
+          "filename": "postings",
+          "format": "json",
+          "data": "${ .loop.output }"
+        },
+        "timeout": "default_timeout"
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "source": "trigger", "target": "loop" },
+    { "id": "e2", "source": "archive", "target": "extract" },
+    { "id": "e3", "source": "extract", "target": "recommend" },
+    { "id": "e4", "source": "loop", "target": "write_postings" }
+  ]
+}

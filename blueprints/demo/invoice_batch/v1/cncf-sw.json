@@ -1,0 +1,195 @@
+{
+  "document": {
+    "dsl": "1.0.0",
+    "namespace": "demo",
+    "name": "invoice_batch",
+    "version": "1",
+    "summary": "MVP — process a batch of invoices: archive in DocRepo, extract with LLM proxy, generate postings, persist as JSON artifact."
+  },
+  "use": {
+    "authentications": {},
+    "errors": {},
+    "extensions": {},
+    "functions": {
+      "docrepo_upload": {
+        "name": "docrepo_upload",
+        "type": "weaver_tool",
+        "operation": "docrepo_upload",
+        "errors": [
+          {
+            "type": "ValidationError",
+            "retryable": false,
+            "is_base": true
+          },
+          {
+            "type": "AuthError",
+            "retryable": false,
+            "is_base": true
+          },
+          {
+            "type": "IntegrationError",
+            "retryable": true,
+            "is_base": true
+          },
+          {
+            "type": "TimeoutError",
+            "retryable": true,
+            "is_base": true
+          }
+        ],
+        "defaultRetryProfile": "default_retry",
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": false,
+        "module": "activities.tools.docrepo_upload"
+      },
+      "invoice_extraction": {
+        "name": "invoice_extraction",
+        "type": "weaver_tool",
+        "operation": "invoice_extraction",
+        "errors": [
+          {
+            "type": "ValidationError",
+            "retryable": false,
+            "is_base": true
+          },
+          {
+            "type": "AuthError",
+            "retryable": false,
+            "is_base": true
+          },
+          {
+            "type": "IntegrationError",
+            "retryable": true,
+            "is_base": true
+          },
+          {
+            "type": "TimeoutError",
+            "retryable": true,
+            "is_base": true
+          }
+        ],
+        "defaultRetryProfile": "default_retry",
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.invoice_extraction"
+      },
+      "posting_recommendation": {
+        "name": "posting_recommendation",
+        "type": "weaver_specialized_agent",
+        "operation": "recommend",
+        "errors": [],
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": false,
+        "endpointUrl": "http://localhost:8600"
+      },
+      "write_artifact": {
+        "name": "write_artifact",
+        "type": "weaver_tool",
+        "operation": "write_artifact",
+        "errors": [
+          {
+            "type": "ValidationError",
+            "retryable": false,
+            "is_base": true
+          }
+        ],
+        "defaultTimeoutProfile": "default_timeout",
+        "idempotent": true,
+        "module": "activities.tools.write_artifact"
+      }
+    },
+    "retries": {
+      "default_retry": {
+        "delay": "PT1S",
+        "backoff": {
+          "exponential": {
+            "multiplier": 2.0
+          }
+        },
+        "limit": {
+          "attempt": {
+            "count": 3
+          }
+        },
+        "nonRetryableTypes": [
+          "ValidationError",
+          "AuthError"
+        ]
+      }
+    },
+    "secrets": [],
+    "timeouts": {
+      "default_timeout": {
+        "after": "PT3M",
+        "metadata": {
+          "temporal": {
+            "heartbeat": "PT30S"
+          }
+        }
+      }
+    }
+  },
+  "do": [
+    {
+      "loop": {
+        "for": {
+          "each": "file",
+          "in": ".input.files"
+        },
+        "do": [
+          {
+            "archive": {
+              "timeout": "default_timeout",
+              "call": "docrepo_upload",
+              "with": {
+                "collection_name": "agent-designer-demo-invoices",
+                "file_name": "${ $file.name }",
+                "mime_type": "${ $file.mime }",
+                "data_b64": "${ $file.data_b64 }"
+              }
+            }
+          },
+          {
+            "extract": {
+              "timeout": "default_timeout",
+              "call": "invoice_extraction",
+              "with": {
+                "mime_type": "${ $file.mime }",
+                "data_b64": "${ $file.data_b64 }"
+              }
+            }
+          },
+          {
+            "recommend": {
+              "timeout": "default_timeout",
+              "call": "posting_recommendation",
+              "with": {
+                "invoice": "${ .extract.output.invoice }"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "write_postings": {
+        "timeout": "default_timeout",
+        "call": "write_artifact",
+        "with": {
+          "tenant_id": "demo",
+          "engagement_id": "${ $context.workflowId }",
+          "filename": "postings",
+          "format": "json",
+          "data": "${ .loop.output }"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "weaver": {
+      "trigger": {
+        "type": "manual_trigger"
+      }
+    }
+  }
+}

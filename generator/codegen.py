@@ -22,6 +22,7 @@ from typing import Any
 
 import black
 
+from generator.expression_eval import extract_program, is_expression
 from ir import (
     CallTask,
     DoTask,
@@ -316,26 +317,30 @@ def _build_call(
     if isinstance(func, ToolFunction):
         target = f"{func.module}.{func.operation}"
         with_arg = task.with_ if task.with_ is not None else {}
-        # Activity arguments: pojedynczy dict (zakładamy, że Tools przyjmują dict / Pydantic input)
+        with_code = _build_with_code(with_arg, ctx_var)
         call_expr = (
             ast.parse(
-                f"await workflow.execute_activity({target}, {_repr(with_arg)}, "
+                f"await workflow.execute_activity({target}, {with_code}, "
                 f"{', '.join(timeout_kwargs + retry_kwarg)})"
             )
             .body[0]
             .value
         )
     else:  # SpecializedAgentFunction
-        agent_call = {
-            "agent": func.name,
-            "endpoint_url": func.endpoint_url,
-            "operation": func.operation,
-            "with": task.with_ or {},
-        }
+        inner_with = task.with_ or {}
+        with_code = _build_with_code(inner_with, ctx_var)
+        agent_call_code = (
+            "{"
+            f'"agent": {func.name!r}, '
+            f'"endpoint_url": {func.endpoint_url!r}, '
+            f'"operation": {func.operation!r}, '
+            f'"with": {with_code}'
+            "}"
+        )
         call_expr = (
             ast.parse(
                 f"await workflow.execute_activity(call_specialized_agent, "
-                f"{_repr(agent_call)}, "
+                f"{agent_call_code}, "
                 f"{', '.join(timeout_kwargs + retry_kwarg)})"
             )
             .body[0]
@@ -747,3 +752,23 @@ def _repr(obj: Any) -> str:
     if isinstance(obj, list):
         return "[" + ", ".join(_repr(v) for v in obj) + "]"
     return repr(obj)
+
+
+def _build_with_code(with_dict: dict[str, Any], ctx_var: str) -> str:
+    """Generate Python dict literal for a with-block.
+
+    Values matching ${ ... } are replaced with `_eval(normalized_program, ctx_var)`
+    calls so they are evaluated at runtime against the engagement context.
+    Non-expression values are emitted as stable repr literals.
+    """
+    if not with_dict:
+        return "{}"
+    items: list[str] = []
+    for k in sorted(with_dict.keys()):
+        v = with_dict[k]
+        if is_expression(v):
+            prog = extract_program(v)
+            items.append(f"{k!r}: _eval({prog!r}, {ctx_var})")
+        else:
+            items.append(f"{k!r}: {_repr(v)}")
+    return "{" + ", ".join(items) + "}"

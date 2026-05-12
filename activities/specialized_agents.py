@@ -16,6 +16,7 @@ from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
 from activities.fixture import fixturable
+from activities.tools._heartbeat import safe_heartbeat
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +52,7 @@ async def call_specialized_agent(call: dict[str, Any]) -> dict[str, Any]:
     - timeout → `TimeoutError` (retryable)
     - 5xx / connection error → `IntegrationError` (retryable)
     """
+    safe_heartbeat("started")
     parsed = AgentCall(**call)
     url = f"{parsed.endpoint_url.rstrip('/')}/{parsed.operation.lstrip('/')}"
 
@@ -82,4 +84,5 @@ async def call_specialized_agent(call: dict[str, Any]) -> dict[str, Any]:
             non_retryable=True,
         ) from exc
 
+    safe_heartbeat("completed")
     return AgentResult(status=resp.status_code, body=body).__dict__

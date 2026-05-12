@@ -1,0 +1,556 @@
+{
+  "schema_version": "1.0",
+  "default_timeout": {
+    "after": "PT5M",
+    "metadata": {
+      "temporal": {
+        "heartbeat": "PT30S"
+      }
+    }
+  },
+  "tools": [
+    {
+      "type": "weaver_tool",
+      "module": "activities.tools.docrepo_download",
+      "errors": [
+        {
+          "type": "ValidationError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "AuthError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "NotFoundError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "TimeoutError",
+          "is_base": true,
+          "retryable": true
+        },
+        {
+          "type": "IntegrationError",
+          "is_base": true,
+          "retryable": true
+        }
+      ],
+      "default_retry_profile": "default_retry",
+      "default_timeout_profile": "default_timeout",
+      "idempotent": true,
+      "name": "docrepo_download",
+      "operation": "docrepo_download",
+      "input_schema": {
+        "properties": {
+          "collection_id": {
+            "minLength": 1,
+            "title": "Collection Id",
+            "type": "string"
+          },
+          "document_id": {
+            "minLength": 1,
+            "title": "Document Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "collection_id",
+          "document_id"
+        ],
+        "title": "DocrepoDownloadInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "mime_type": {
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "data_b64": {
+            "title": "Data B64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "mime_type",
+          "bytes",
+          "data_b64"
+        ],
+        "title": "DocrepoDownloadOutput",
+        "type": "object"
+      }
+    },
+    {
+      "type": "weaver_tool",
+      "module": "activities.tools.docrepo_upload",
+      "errors": [
+        {
+          "type": "ValidationError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "AuthError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "NotFoundError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "TimeoutError",
+          "is_base": true,
+          "retryable": true
+        },
+        {
+          "type": "IntegrationError",
+          "is_base": true,
+          "retryable": true
+        }
+      ],
+      "default_retry_profile": "default_retry",
+      "default_timeout_profile": "default_timeout",
+      "idempotent": false,
+      "name": "docrepo_upload",
+      "operation": "docrepo_upload",
+      "input_schema": {
+        "properties": {
+          "collection_name": {
+            "minLength": 1,
+            "title": "Collection Name",
+            "type": "string"
+          },
+          "file_name": {
+            "minLength": 1,
+            "title": "File Name",
+            "type": "string"
+          },
+          "mime_type": {
+            "minLength": 1,
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "data_b64": {
+            "minLength": 1,
+            "title": "Data B64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "collection_name",
+          "file_name",
+          "mime_type",
+          "data_b64"
+        ],
+        "title": "DocrepoUploadInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "collection_id": {
+            "title": "Collection Id",
+            "type": "string"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "upload_id": {
+            "title": "Upload Id",
+            "type": "string"
+          },
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "collection_id",
+          "document_id",
+          "upload_id",
+          "bytes"
+        ],
+        "title": "DocrepoUploadOutput",
+        "type": "object"
+      }
+    },
+    {
+      "type": "weaver_tool",
+      "module": "activities.tools.http_get",
+      "errors": [
+        {
+          "type": "ValidationError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "TimeoutError",
+          "is_base": true,
+          "retryable": true
+        },
+        {
+          "type": "IntegrationError",
+          "is_base": true,
+          "retryable": true
+        }
+      ],
+      "default_retry_profile": "default_retry",
+      "default_timeout_profile": "default_timeout",
+      "idempotent": true,
+      "name": "http_get",
+      "operation": "http_get",
+      "input_schema": {
+        "properties": {
+          "url": {
+            "minLength": 1,
+            "title": "Url",
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Headers",
+            "type": "object"
+          },
+          "timeout_seconds": {
+            "default": 10.0,
+            "exclusiveMinimum": 0,
+            "title": "Timeout Seconds",
+            "type": "number"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "HttpGetInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Headers",
+            "type": "object"
+          }
+        },
+        "required": [
+          "status",
+          "body",
+          "headers"
+        ],
+        "title": "HttpGetOutput",
+        "type": "object"
+      }
+    },
+    {
+      "type": "weaver_tool",
+      "module": "activities.tools.invoice_extraction",
+      "errors": [
+        {
+          "type": "ValidationError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "AuthError",
+          "is_base": true,
+          "retryable": false
+        },
+        {
+          "type": "TimeoutError",
+          "is_base": true,
+          "retryable": true
+        },
+        {
+          "type": "IntegrationError",
+          "is_base": true,
+          "retryable": true
+        }
+      ],
+      "default_retry_profile": "default_retry",
+      "default_timeout_profile": "default_timeout",
+      "idempotent": true,
+      "name": "invoice_extraction",
+      "operation": "invoice_extraction",
+      "input_schema": {
+        "properties": {
+          "mime_type": {
+            "description": "application/pdf | image/png | image/jpeg | image/webp",
+            "title": "Mime Type",
+            "type": "string"
+          },
+          "data_b64": {
+            "minLength": 1,
+            "title": "Data B64",
+            "type": "string"
+          },
+          "pages_per_chunk": {
+            "default": 5,
+            "maximum": 20,
+            "minimum": 1,
+            "title": "Pages Per Chunk",
+            "type": "integer"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Model"
+          }
+        },
+        "required": [
+          "mime_type",
+          "data_b64"
+        ],
+        "title": "InvoiceExtractionInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "invoice": {
+            "additionalProperties": true,
+            "title": "Invoice",
+            "type": "object"
+          },
+          "pages_processed": {
+            "title": "Pages Processed",
+            "type": "integer"
+          },
+          "chunks_processed": {
+            "title": "Chunks Processed",
+            "type": "integer"
+          },
+          "usage_total_tokens": {
+            "title": "Usage Total Tokens",
+            "type": "integer"
+          },
+          "model_used": {
+            "title": "Model Used",
+            "type": "string"
+          }
+        },
+        "required": [
+          "invoice",
+          "pages_processed",
+          "chunks_processed",
+          "usage_total_tokens",
+          "model_used"
+        ],
+        "title": "InvoiceExtractionOutput",
+        "type": "object"
+      }
+    },
+    {
+      "type": "weaver_tool",
+      "module": "activities.tools.log_message",
+      "errors": [
+        {
+          "type": "ValidationError",
+          "is_base": true,
+          "retryable": false
+        }
+      ],
+      "default_retry_profile": null,
+      "default_timeout_profile": "default_timeout",
+      "idempotent": true,
+      "name": "log_message",
+      "operation": "log_message",
+      "input_schema": {
+        "properties": {
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "level": {
+            "default": "INFO",
+            "pattern": "^(DEBUG|INFO|WARNING|ERROR|CRITICAL)$",
+            "title": "Level",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "LogMessageInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "logged": {
+            "title": "Logged",
+            "type": "boolean"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          }
+        },
+        "required": [
+          "logged",
+          "level"
+        ],
+        "title": "LogMessageOutput",
+        "type": "object"
+      }
+    },
+    {
+      "type": "weaver_tool",
+      "module": "activities.tools.write_artifact",
+      "errors": [
+        {
+          "type": "ValidationError",
+          "is_base": true,
+          "retryable": false
+        }
+      ],
+      "default_retry_profile": null,
+      "default_timeout_profile": "default_timeout",
+      "idempotent": true,
+      "name": "write_artifact",
+      "operation": "write_artifact",
+      "input_schema": {
+        "properties": {
+          "tenant_id": {
+            "minLength": 1,
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "engagement_id": {
+            "minLength": 1,
+            "title": "Engagement Id",
+            "type": "string"
+          },
+          "filename": {
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          },
+          "format": {
+            "enum": [
+              "json",
+              "csv"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "data": {
+            "description": "For JSON: any value. For CSV: list[dict[str, scalar]] with consistent keys.",
+            "title": "Data"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "engagement_id",
+          "filename",
+          "format",
+          "data"
+        ],
+        "title": "WriteArtifactInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "artifact_url": {
+            "title": "Artifact Url",
+            "type": "string"
+          },
+          "absolute_path": {
+            "title": "Absolute Path",
+            "type": "string"
+          },
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "format": {
+            "enum": [
+              "json",
+              "csv"
+            ],
+            "title": "Format",
+            "type": "string"
+          }
+        },
+        "required": [
+          "artifact_url",
+          "absolute_path",
+          "bytes",
+          "format"
+        ],
+        "title": "WriteArtifactOutput",
+        "type": "object"
+      }
+    }
+  ],
+  "specialized_agents": [],
+  "base_errors": [
+    {
+      "type": "ValidationError",
+      "is_base": true,
+      "retryable": false
+    },
+    {
+      "type": "AuthError",
+      "is_base": true,
+      "retryable": false
+    },
+    {
+      "type": "RateLimitError",
+      "is_base": true,
+      "retryable": true
+    },
+    {
+      "type": "TimeoutError",
+      "is_base": true,
+      "retryable": true
+    },
+    {
+      "type": "NotFoundError",
+      "is_base": true,
+      "retryable": false
+    },
+    {
+      "type": "IntegrationError",
+      "is_base": true,
+      "retryable": true
+    },
+    {
+      "type": "InternalError",
+      "is_base": true,
+      "retryable": false
+    }
+  ]
+}

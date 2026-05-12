@@ -14,6 +14,7 @@ from temporalio import activity
 from temporalio.exceptions import ApplicationError
 
 from activities.fixture import fixturable
+from activities.tools._heartbeat import safe_heartbeat
 
 
 class HttpGetInput(BaseModel):
@@ -31,6 +32,7 @@ class HttpGetOutput(BaseModel):
 @activity.defn(name="http_get")
 @fixturable
 async def http_get(payload: dict[str, Any]) -> dict[str, Any]:
+    safe_heartbeat("started")
     parsed = HttpGetInput.model_validate(payload)
     try:
         async with httpx.AsyncClient(timeout=parsed.timeout_seconds) as client:
@@ -40,6 +42,7 @@ async def http_get(payload: dict[str, Any]) -> dict[str, Any]:
     except httpx.RequestError as exc:
         raise ApplicationError("IntegrationError", str(exc), non_retryable=False) from exc
 
+    safe_heartbeat("completed")
     return HttpGetOutput(
         status=resp.status_code,
         body=resp.text,

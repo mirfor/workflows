@@ -201,7 +201,8 @@ def _build_trigger(
 ) -> ManualTrigger | WebhookTrigger | ScheduleTrigger | EventTrigger:
     data = node.get("data") or {}
     t = node["type"]
-    if t == "manual_trigger":
+    # Designer-side `start` is the palette name for manual trigger (CNCF canonical).
+    if t in ("manual_trigger", "start"):
         return ManualTrigger(input_schema_ref=data.get("inputSchemaRef"))
     if t == "webhook_trigger":
         return WebhookTrigger(

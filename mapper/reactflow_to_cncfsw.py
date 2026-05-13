@@ -44,7 +44,10 @@ from ir import (
     Workflow,
 )
 
-TRIGGER_TYPES = {"manual_trigger", "webhook_trigger", "schedule_trigger", "event_trigger"}
+TRIGGER_TYPES = {"manual_trigger", "webhook_trigger", "schedule_trigger", "event_trigger", "start"}
+# Designer-side "end" is a visual sink node — no CNCF equivalent (workflow ends
+# when all paths complete). Mapper strips end nodes from IR via _strip_end_nodes.
+END_TYPES = {"end"}
 ATOMIC_TASK_TYPES = {"call", "wait", "emit", "raise", "run", "set", "core.subprocess"}
 CONTAINER_TASK_TYPES = {"for", "for_each", "try"}
 BRANCHING_TASK_TYPES = {"switch", "fork", "listen"}
@@ -80,7 +83,12 @@ def map_reactflow_to_cncfsw(rf: dict[str, Any]) -> Workflow:
     top_level_ids = [
         nid
         for nid, n in nodes_by_id.items()
-        if n.get("parentNode") is None and nid != trigger_node_id and nid not in branch_owners
+        if n.get("parentNode") is None
+        and nid != trigger_node_id
+        and nid not in branch_owners
+        # Designer-side `end` nodes are visual sinks — CNCF SW has no end task,
+        # workflow completes when all paths drain. Strip from IR.
+        and n.get("type") not in END_TYPES
     ]
     do = _build_sequence(
         top_level_ids,

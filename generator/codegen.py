@@ -226,9 +226,22 @@ def _build_workflow_class(workflow: Workflow, class_name: str, workflow_name: st
 
     # `steps_output: dict[str, Any] = {}`
     run_body.append(ast.parse("steps_output: dict[str, Any] = {}").body[0])
-    # `ctx: dict[str, Any] = {"input": input, "steps": steps_output}`
+    # ctx exposes runtime Temporal info under `$context.*` (resolved by _eval).
+    # Designer/mapper writes `${ $context.engagement_id }` etc. — these resolve
+    # to workflow.info() at activity-call time.
     run_body.append(
-        ast.parse('ctx: dict[str, Any] = {"input": input, "steps": steps_output}').body[0]
+        ast.parse(
+            'ctx: dict[str, Any] = {\n'
+            '    "input": input,\n'
+            '    "steps": steps_output,\n'
+            '    "context": {\n'
+            '        "tenant_id": workflow.info().namespace,\n'
+            '        "engagement_id": workflow.info().workflow_id,\n'
+            '        "workflowId": workflow.info().workflow_id,\n'
+            '        "run_id": workflow.info().run_id,\n'
+            '    },\n'
+            '}'
+        ).body[0]
     )
 
     # Sekwencja zadań z workflow.do[]

@@ -533,10 +533,21 @@ def _function_for_core_skill(step_type: Any) -> str | None:
 def _core_skill_with(data: dict[str, Any]) -> dict[str, Any]:
     """Compose the `with` payload for Core Skill calls from top-level data fields.
     Palette UX writes intent/title/form_schema directly on data; mapper composes
-    them into the `with` map for the underlying tool."""
+    them into the `with` map for the underlying tool.
+
+    For human_task: inject runtime context placeholders (resolved by generator's
+    expression evaluator at execution time) for fields the activity needs but
+    only the runtime knows (tenant_id, engagement_id, workflow_id).
+    """
     step_type = data.get("stepType")
     if step_type == "human_task":
         return {
+            # Runtime context — generator's eval('${...}') resolves at activity-call time.
+            "tenant_id": "${ $context.tenant_id }",
+            "engagement_id": "${ $context.engagement_id }",
+            "form_id": data.get("form_id") or "approval-form",
+            "assignee": data.get("assignee") or "*",
+            # Static / designer-side metadata
             "intent": data.get("intent") or "approval",
             "title": data.get("title") or "",
             "description": data.get("description") or "",

@@ -409,6 +409,10 @@ def _build_task(
         with_payload = data.get("with")
         if with_payload is None:
             with_payload = _core_skill_with(data)
+        # Ensure Core Skill calls get a default timeout so generator can emit
+        # start_to_close_timeout (Temporal requirement). Designer palette
+        # for human_task/ai_skill/timer/etc. may not set data.timeout.
+        common.setdefault("timeout", "default_timeout")
         return CallTask(call=call_target, **{"with": with_payload}, **common)
     if t == "wait":
         return WaitTask(wait=data["duration"], **common)

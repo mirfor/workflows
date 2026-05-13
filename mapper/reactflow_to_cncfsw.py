@@ -388,12 +388,28 @@ def _build_task(
 ) -> Any:
     branch_owners = branch_owners or {}
     node = nodes_by_id[nid]
-    t = node["type"]
+    raw_t = node["type"]
     data = node.get("data") or {}
     common = _common_task_fields(data)
 
+    # Designer-side render type aliases ("step", "stepNode", "decisionPointNode")
+    # carry the real CNCF kind in data.stepType. Translate before dispatching so
+    # the rest of the dispatch table sees canonical kinds only.
+    t = _translate_designer_type(raw_t, data)
+
     if t == "call":
-        return CallTask(call=data["function"], **{"with": data.get("with")}, **common)
+        # Some Core Skills (human_task, ai_skill, timer, weaver_transform) carry
+        # `with` fields directly on `data` instead of `data.with` — palette UX
+        # writes intent/title/form_schema at top level. Collect them.
+        call_target = data.get("function") or _function_for_core_skill(data.get("stepType"))
+        if not call_target:
+            raise MapperError(
+                f"call node {nid} brak funkcji (data.function ani Core Skill fallback)."
+            )
+        with_payload = data.get("with")
+        if with_payload is None:
+            with_payload = _core_skill_with(data)
+        return CallTask(call=call_target, **{"with": with_payload}, **common)
     if t == "wait":
         return WaitTask(wait=data["duration"], **common)
     if t == "emit":
@@ -432,6 +448,110 @@ def _build_task(
         return _build_try(nid, data, parent_index, nodes_by_id, edges, outgoing, common)
 
     raise MapperError(f"Nieznany task type: {t!r} dla node {nid}.")
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Designer ↔ CNCF type translation
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Designer palette emits node.type ∈ {"step", "stepNode", "decisionPointNode",
+# "for_each", "start", "end", ...} (visual renderer keys). The real semantic
+# step type lives in node.data.stepType. Map data.stepType -> CNCF kind so
+# mapper dispatch sees canonical kinds regardless of which palette / round-trip
+# path produced the node.
+
+# Core Skills that resolve to CNCF `call` task with a builtin Tool function.
+_CORE_SKILL_TO_TOOL: dict[str, str] = {
+    "human_task": "create_human_task",
+    "ai_skill": "ai_skill_invoke",
+    "ai_briefing": "ai_briefing_generate",
+    "weaver_transform": "weaver_transform_run",
+}
+
+# Designer stepType -> CNCF task kind (used by mapper dispatch).
+_STEPTYPE_TO_CNCF: dict[str, str] = {
+    # Core Skills that are tool calls
+    "human_task": "call",
+    "ai_skill": "call",
+    "ai_briefing": "call",
+    "weaver_transform": "call",
+    # Delegate to Agent (subprocess in code, sub-agent in UI)
+    "subprocess": "core.subprocess",
+    "core.subprocess": "core.subprocess",
+    # Timer is a wait
+    "timer": "wait",
+    # CNCF kinds pass through
+    "call": "call",
+    "set": "set",
+    "wait": "wait",
+    "emit": "emit",
+    "raise": "raise",
+    "run": "run",
+    "switch": "switch",
+    "fork": "fork",
+    "listen": "listen",
+    "for": "for",
+    "for_each": "for",
+    "try": "try",
+}
+
+# node.type passthrough — already CNCF kind
+_TYPE_PASSTHROUGH = {
+    "call", "set", "wait", "emit", "raise", "run", "core.subprocess",
+    "switch", "fork", "listen", "for", "for_each", "try",
+}
+
+
+def _translate_designer_type(raw_type: str, data: dict[str, Any]) -> str:
+    """Resolve a CNCF task kind from a (possibly designer-side) node type + data.stepType.
+
+    Order of precedence:
+      1. node.type already CNCF kind -> use it (passthrough).
+      2. data.stepType maps to CNCF kind -> use it.
+      3. Otherwise return raw_type (downstream dispatch will raise on unknown).
+    """
+    if raw_type in _TYPE_PASSTHROUGH:
+        return raw_type
+    step_type = data.get("stepType")
+    if isinstance(step_type, str) and step_type in _STEPTYPE_TO_CNCF:
+        return _STEPTYPE_TO_CNCF[step_type]
+    return raw_type
+
+
+def _function_for_core_skill(step_type: Any) -> str | None:
+    """For Core Skill steps (human_task, ai_skill, ...) that lack data.function,
+    derive the builtin Tool name from stepType."""
+    if isinstance(step_type, str):
+        return _CORE_SKILL_TO_TOOL.get(step_type)
+    return None
+
+
+def _core_skill_with(data: dict[str, Any]) -> dict[str, Any]:
+    """Compose the `with` payload for Core Skill calls from top-level data fields.
+    Palette UX writes intent/title/form_schema directly on data; mapper composes
+    them into the `with` map for the underlying tool."""
+    step_type = data.get("stepType")
+    if step_type == "human_task":
+        return {
+            "intent": data.get("intent") or "approval",
+            "title": data.get("title") or "",
+            "description": data.get("description") or "",
+            "due_in_hours": data.get("due_in_hours") or 24,
+            "decision_options": data.get("decision_options") or "",
+            "form_schema": data.get("form_schema") or {"fields": []},
+        }
+    if step_type in ("ai_skill", "ai_briefing"):
+        return {
+            "model": data.get("model") or "claude-sonnet-4-6",
+            "prompt": data.get("prompt") or "",
+            "temperature": data.get("temperature"),
+            "max_tokens": data.get("max_tokens"),
+        }
+    if step_type == "weaver_transform":
+        return {"script": data.get("script") or ""}
+    if step_type == "timer":
+        return {"duration": data.get("duration") or "PT0S"}
+    return {}
 
 
 def _common_task_fields(data: dict[str, Any]) -> dict[str, Any]:
